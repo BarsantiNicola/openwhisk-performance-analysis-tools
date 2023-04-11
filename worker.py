@@ -55,7 +55,7 @@ class Worker(Thread):
     # function to perform a request to openwhisk via wsk and wait its result
     def request_and_wait(self):
         start = time.time()
-        with Popen(["wsk", "action", "invoke", self.action, "-ir", "--param", str(self.compute_et_time())],
+        with Popen(["wsk", "action", "invoke", self.action, "-ir", "--param", "time", str(self.compute_et_time())],
                    stdout=subprocess.PIPE) as proc:
             result = proc.stdout.read().decode("utf-8")
             if "error" in result or len(result) == 0:
