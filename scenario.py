@@ -1,6 +1,7 @@
 from mongo_connection import mongo_connection
 from worker import Worker
 import numpy
+import os
 
 """
 Configuration for the creation of a worker. Each given configuration represents a worker that will be
@@ -36,7 +37,6 @@ def launch_scenario(
         db_name: str,
         db_collection: str,
         config: WorkerConfig | list[WorkerConfig]):
-
     if isinstance(config, WorkerConfig):
         config = [config]
     numpy.random.seed(init_seed)
@@ -65,5 +65,16 @@ def launch_scenario(
     for worker in workers:
         worker.join()
 
+    extract_results(db_name + "_" + db_collection)
+    parse_and_store(db_name + "_" + db_collection)
     print("Ended")
 
+
+def extract_results(scenario_name):
+    os.system("ssh root@kube-worker-0 '/root/extractor.sh' 2> /dev/null")
+    os.system("ssh root@kube-worker-1 '/root/extractor.sh' 2> /dev/null")
+    os.system("mkdir " + scenario_name)
+    os.system("mv *.log " + scenario_name)
+
+def parse_and_store(scenario_name):
+    return
