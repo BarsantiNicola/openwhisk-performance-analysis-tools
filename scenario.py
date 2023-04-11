@@ -53,7 +53,7 @@ def launch_scenario(
         Worker(
             config.index(conf),
             client,
-            numpy.random.rand(),
+            float_to_int(numpy.random.rand()),
             conf.n_reqs,
             conf.inter_arrival_time,
             conf.random_distribution,
@@ -85,3 +85,11 @@ def extract_results(scenario_name: str):
 
 def parse_and_store(scenario_name: str):
     return
+
+
+def float_to_int(array):
+    int_array = array.astype(int, casting='unsafe', copy=True)
+    if not numpy.equal(array, int_array).all():
+        raise TypeError("Cannot safely convert float array to int dtype. "
+                        "Array must only contain whole numbers.")
+    return int_array
