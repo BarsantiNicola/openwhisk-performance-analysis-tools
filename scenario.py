@@ -53,16 +53,16 @@ def launch_scenario(
 
     workers = [
         Worker(
-            config.index(conf),
+            index,
             client,
             floor((numpy.random.rand()*1000)),
-            conf.n_reqs,
-            conf.inter_arrival_time,
-            conf.random_distribution,
-            conf.execution_time,
-            conf.et_distribution,
-            conf.action
-        ) for conf in config]
+            config[index].n_reqs,
+            config[index].inter_arrival_time,
+            config[index].random_distribution,
+            config[index].execution_time,
+            config[index].et_distribution,
+            config[index].action
+        ) for index in range(0, len(config))]
 
     for worker in workers:
         worker.start()
@@ -87,11 +87,3 @@ def extract_results(scenario_name: str):
 
 def parse_and_store(scenario_name: str):
     return
-
-
-def float_to_int(array):
-    int_array = array.astype(int, casting='unsafe', copy=True)
-    if not numpy.equal(array, int_array).all():
-        raise TypeError("Cannot safely convert float array to int dtype. "
-                        "Array must only contain whole numbers.")
-    return int_array
