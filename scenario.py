@@ -13,11 +13,13 @@ executed in parallel. I have overloaded the mathematics operands + and *:
 
 class WorkerConfig:
     def __init__(self, n_reqs, inter_arrival_time: int, random_distribution: str, execution_time: int,
+                 et_distribution: str,
                  action: str):
         self.inter_arrival_time = inter_arrival_time
         self.random_distribution = random_distribution
         self.execution_time = execution_time
         self.n_reqs = n_reqs
+        self.et_distribution = et_distribution
         self.action = action
 
     def __mul__(self, other: int):
@@ -56,6 +58,7 @@ def launch_scenario(
             conf.inter_arrival_time,
             conf.random_distribution,
             conf.execution_time,
+            conf.et_distribution,
             conf.action
         ) for conf in config]
 
@@ -65,17 +68,20 @@ def launch_scenario(
     for worker in workers:
         worker.join()
 
+    print("Test Execution completed! Starting results extraction")
     extract_results(db_name + "_" + db_collection)
     parse_and_store(db_name + "_" + db_collection)
     print("Ended")
 
 
-def extract_results(scenario_name):
-    os.system("mkdir -p /home/ubuntu/results/" + scenario_name+"/invoker")
-    os.system("mkdir -p /home/ubuntu/results/" + scenario_name+"/scheduler")
+def extract_results(scenario_name: str):
+    os.system("mkdir -p /home/ubuntu/results/" + scenario_name + "/invoker")
+    os.system("mkdir -p /home/ubuntu/results/" + scenario_name + "/scheduler")
     os.system("ssh root@kube-worker-0 '/root/extractor.sh' 2> /dev/null")
     os.system("ssh root@kube-worker-1 '/root/extractor.sh' 2> /dev/null")
-    os.system("mv /home/ubuntu/results/*invoker*.log /home/ubuntu/results/"+scenario_name+"/invoker")
-    os.system("mv /home/ubuntu/results/*scheduler*.log /home/ubuntu/results/"+scenario_name+"/scheduler")
-def parse_and_store(scenario_name):
+    os.system("mv /home/ubuntu/results/*invoker*.log /home/ubuntu/results/" + scenario_name + "/invoker")
+    os.system("mv /home/ubuntu/results/*scheduler*.log /home/ubuntu/results/" + scenario_name + "/scheduler")
+
+
+def parse_and_store(scenario_name: str):
     return
