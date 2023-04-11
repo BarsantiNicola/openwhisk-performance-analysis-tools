@@ -4,7 +4,6 @@ from subprocess import Popen
 from threading import Thread
 import time
 import numpy
-from numpy import ndarray
 
 from mongo_connection import mongo_connection
 
@@ -31,7 +30,7 @@ class Worker(Thread):
             self,
             worker_id: int,
             client: mongo_connection,
-            seed: ndarray,
+            seed: int,
             n_reqs: int,
             mean_inter_arrival_time: int,
             iat_distribution: str,

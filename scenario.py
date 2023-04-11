@@ -1,3 +1,5 @@
+from math import floor
+
 from mongo_connection import mongo_connection
 from worker import Worker
 import numpy
@@ -53,7 +55,7 @@ def launch_scenario(
         Worker(
             config.index(conf),
             client,
-            float_to_int(numpy.random.rand()),
+            floor((numpy.random.rand()*1000)),
             conf.n_reqs,
             conf.inter_arrival_time,
             conf.random_distribution,
