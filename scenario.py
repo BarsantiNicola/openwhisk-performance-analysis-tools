@@ -73,8 +73,8 @@ def launch_scenario(
 def extract_results(scenario_name):
     os.system("ssh root@kube-worker-0 '/root/extractor.sh' 2> /dev/null")
     os.system("ssh root@kube-worker-1 '/root/extractor.sh' 2> /dev/null")
-    os.system("mkdir " + scenario_name)
-    os.system("mv *.log " + scenario_name)
+    os.system("mkdir /home/ubuntu/results/" + scenario_name)
+    os.system("mv /home/ubuntu/results/*.log /home/ubuntu/results/"+scenario_name)
 
 def parse_and_store(scenario_name):
     return
