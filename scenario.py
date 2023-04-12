@@ -120,7 +120,7 @@ def parse_and_store(directory_path: str, client: mongo_connection) -> list[list[
     store = []
     for file in files:
         with open(file) as f:
-            print("parsing file: " + file)
+            print("Parsing file: " + file)
             terminated = True
             while terminated:
                 line = f.readline()
@@ -128,9 +128,7 @@ def parse_and_store(directory_path: str, client: mongo_connection) -> list[list[
                     terminated = False
                 else:
                     header_index = line.find("[Framework-Analysis]")
-                    print(str(header_index))
                     if header_index > 0 and "[Event]" not in line:
-                        print(line)
                         content_index = line.rfind("{")
                         header = line[header_index:content_index]
                         content = json.loads(line[content_index:].replace("'", "\""))
