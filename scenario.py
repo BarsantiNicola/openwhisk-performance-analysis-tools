@@ -4,6 +4,9 @@ from mongo_connection import mongo_connection
 from worker import Worker
 import numpy
 import os
+import json
+from os import listdir
+from os.path import isfile, join
 
 """
 Configuration for the creation of a worker. Each given configuration represents a worker that will be
@@ -55,7 +58,7 @@ def launch_scenario(
         Worker(
             index,
             client,
-            floor((numpy.random.rand()*1000)),
+            floor((numpy.random.rand() * 1000)),
             config[index].n_reqs,
             config[index].inter_arrival_time,
             config[index].random_distribution,
@@ -72,7 +75,7 @@ def launch_scenario(
 
     print("Test Execution completed! Starting results extraction")
     extract_results(db_name + "_" + db_collection)
-    parse_and_store(db_name + "_" + db_collection)
+    parse_and_store(db_name + "_" + db_collection, client)
     print("Ended")
 
 
@@ -85,5 +88,32 @@ def extract_results(scenario_name: str):
     os.system("mv /home/ubuntu/results/*scheduler*.log /home/ubuntu/results/" + scenario_name + "/scheduler")
 
 
-def parse_and_store(scenario_name: str):
-    return
+def parse_merge_and_store(global_directory_path: str, client: mongo_connection):
+    scheduler_pendings = parse_and_store(global_directory_path + "/scheduler", client)
+    invoker_pendings = parse_and_store(global_directory_path + "/invoker", client)
+
+def parse_and_store(directory_path: str):
+    files = [join(directory_path, f) for f in listdir(directory_path) if isfile(join(directory_path, f))]
+    results = []
+    store = []
+    for file in files:
+        with open(file) as f:
+            print("parsing file: " + file)
+            terminated = True
+            while terminated:
+                line = f.readline()
+                if not line:
+                    terminated = False
+                else:
+                    header_index = line.find("[Framework-Analysis]")
+                    if header_index >= 0 and "[Event]" not in line:
+                        content_index = line.rfind("{")
+                        header = line[header_index:content_index]
+                        print(line[content_index:].replace("'", "\""))
+                        content = json.loads(line[content_index:].replace("'", "\""))
+                        if "[Data]" in header:
+                            store.append(content)
+                        elif "[Measure]" in header:
+                            results.append(content)
+    #client.insert_many(store)
+    return results
