@@ -74,12 +74,15 @@ def launch_scenario(
         worker.join()
 
     print("Test Execution completed! Starting results extraction")
-    extract_results(db_name + "_" + db_collection)
-    parse_and_store(db_name + "_" + db_collection, client)
-    print("Ended")
+    scenario_name = db_name + "_" + db_collection
+    extract_results(scenario_name)
+    result = parse_merge_and_store(scenario_name, client)
+    print("Result extraction completed. Values already stored inside mongoDb at " + db_addr + ":" + str(
+        db_port) + "(" + db_name + " -> " + db_collection + ")")
+    return result
 
 
-def extract_results(scenario_name: str):
+def extract_results(scenario_name: str) -> None:
     os.system("mkdir -p /home/ubuntu/results/" + scenario_name + "/invoker")
     os.system("mkdir -p /home/ubuntu/results/" + scenario_name + "/scheduler")
     os.system("ssh root@kube-worker-0 '/root/extractor.sh' 2> /dev/null")
@@ -88,13 +91,31 @@ def extract_results(scenario_name: str):
     os.system("mv /home/ubuntu/results/*scheduler*.log /home/ubuntu/results/" + scenario_name + "/scheduler")
 
 
-def parse_merge_and_store(global_directory_path: str, client: mongo_connection):
-    scheduler_pendings = parse_and_store(global_directory_path + "/scheduler", client)
-    invoker_pendings = parse_and_store(global_directory_path + "/invoker", client)
+def parse_merge_and_store(global_directory_path: str, client: mongo_connection) -> list[dict]:
+    scheduler_pending = parse_and_store(global_directory_path + "/scheduler", client)
+    invoker_pending = parse_and_store(global_directory_path + "/invoker", client)
+    resolved_pending = []
+    for s_pending in scheduler_pending[0]:
+        for i_pending in invoker_pending[0]:
+            if s_pending["activation_id"] == i_pending["activation_id"]:
+                resolved_pending.append(
+                    {
+                        "response_time": i_pending["time"] - s_pending["time"],
+                        "action": s_pending["action"],
+                        "namespace": s_pending["namespace"],
+                        "state": s_pending["state"],
+                        "timestamp": s_pending["time"]
+                    }
+                )
+                invoker_pending[0].remove(i_pending)
+                break
+    client.insert_many(resolved_pending)
+    return resolved_pending + scheduler_pending[1] + invoker_pending[1]
 
-def parse_and_store(directory_path: str):
+
+def parse_and_store(directory_path: str, client: mongo_connection) -> list[list[dict]]:
     files = [join(directory_path, f) for f in listdir(directory_path) if isfile(join(directory_path, f))]
-    results = []
+    pending = []
     store = []
     for file in files:
         with open(file) as f:
@@ -106,14 +127,15 @@ def parse_and_store(directory_path: str):
                     terminated = False
                 else:
                     header_index = line.find("[Framework-Analysis]")
-                    if header_index >= 0 and "[Event]" not in line:
+                    print(str(header_index))
+                    if header_index > 0 and "[Event]" not in line:
+                        print(line)
                         content_index = line.rfind("{")
                         header = line[header_index:content_index]
-                        print(line[content_index:].replace("'", "\""))
                         content = json.loads(line[content_index:].replace("'", "\""))
                         if "[Data]" in header:
                             store.append(content)
                         elif "[Measure]" in header:
-                            results.append(content)
-    #client.insert_many(store)
-    return results
+                            pending.append(content)
+    client.insert_many(store)
+    return [pending, store]

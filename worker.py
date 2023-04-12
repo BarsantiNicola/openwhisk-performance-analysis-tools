@@ -54,7 +54,7 @@ class Worker(Thread):
 
     # function to perform a request to openwhisk via wsk and wait its result
     def request_and_wait(self):
-        start = time.time()
+        start = time.time()*1000
         with Popen(["wsk", "action", "invoke", self.action, "-ir", "--param", "time", str(self.compute_et_time())],
                    stdout=subprocess.PIPE) as proc:
             result = proc.stdout.read().decode("utf-8")
@@ -62,7 +62,7 @@ class Worker(Thread):
                 self.error += 1
             else:
                 self.completed += 1
-        end = time.time()
+        end = time.time()*1000
         self.client.insert_one(
             {
                 "timestamp": end,
