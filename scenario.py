@@ -137,5 +137,6 @@ def parse_and_store(directory_path: str, client: mongo_connection) -> list[list[
                             store.append(content)
                         elif "[Measure]" in header:
                             pending.append(content)
-    client.insert_many(store)
+    if len(store) > 0:
+        client.insert_many(store)
     return [pending, store]
