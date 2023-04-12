@@ -76,7 +76,7 @@ def launch_scenario(
     print("Test Execution completed! Starting results extraction")
     scenario_name = db_name + "_" + db_collection
     extract_results(scenario_name)
-    result = parse_merge_and_store(scenario_name, client)
+    result = parse_merge_and_store("/home/ubuntu/results/"+scenario_name, client)
     print("Result extraction completed. Values already stored inside mongoDb at " + db_addr + ":" + str(
         db_port) + "(" + db_name + " -> " + db_collection + ")")
     return result
