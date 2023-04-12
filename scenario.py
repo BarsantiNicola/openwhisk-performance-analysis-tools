@@ -86,9 +86,9 @@ def extract_results(scenario_name: str) -> None:
     os.system("mkdir -p /home/ubuntu/results/" + scenario_name + "/invoker")
     os.system("mkdir -p /home/ubuntu/results/" + scenario_name + "/scheduler")
     os.system("ssh root@kube-worker-0 '/root/extractor.sh' 2> /dev/null")
-    os.system("mv /home/ubuntu/results/loaded* /home/ubuntu/results/" + scenario_name + "/scheduler")
+    os.system("mv /home/ubuntu/results/loaded/* /home/ubuntu/results/" + scenario_name + "/scheduler")
     os.system("ssh root@kube-worker-1 '/root/extractor.sh' 2> /dev/null")
-    os.system("mv /home/ubuntu/results/*invoker*.log /home/ubuntu/results/" + scenario_name + "/invoker")
+    os.system("mv /home/ubuntu/results/loaded/* /home/ubuntu/results/" + scenario_name + "/invoker")
 
 
 def parse_merge_and_store(global_directory_path: str, client: mongo_connection) -> list[dict]:
