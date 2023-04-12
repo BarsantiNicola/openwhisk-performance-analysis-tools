@@ -1,3 +1,5 @@
+import subprocess
+from datetime import datetime
 from math import floor
 
 from mongo_connection import mongo_connection
@@ -54,6 +56,7 @@ def launch_scenario(
         print(error.name)
         return
 
+    initial_timestamp = get_initial_time()
     workers = [
         Worker(
             index,
@@ -76,7 +79,7 @@ def launch_scenario(
     print("Test Execution completed! Starting results extraction")
     scenario_name = db_name + "_" + db_collection
     extract_results(scenario_name)
-    result = parse_merge_and_store("/home/ubuntu/results/"+scenario_name, client)
+    result = parse_merge_and_store("/home/ubuntu/results/" + scenario_name, initial_timestamp, client)
     print("Result extraction completed. Values already stored inside mongoDb at " + db_addr + ":" + str(
         db_port) + "(" + db_name + " -> " + db_collection + ")")
     return result
@@ -91,9 +94,29 @@ def extract_results(scenario_name: str) -> None:
     os.system("mv /home/ubuntu/results/loaded/* /home/ubuntu/results/" + scenario_name + "/invoker")
 
 
-def parse_merge_and_store(global_directory_path: str, client: mongo_connection) -> list[dict]:
-    scheduler_pending = parse_and_store(global_directory_path + "/scheduler", client)
-    invoker_pending = parse_and_store(global_directory_path + "/invoker", client)
+def convert_timestamp(time: str) -> datetime:
+    result = time[:time.rfind("+") - 3]
+    return datetime.strptime(result, "%Y-%m-%dT%H:%M:%S.%f")
+
+
+def get_initial_time() -> datetime:
+    result1 = subprocess.run(["ssh", "root@kube-worker-0", "'/root/timer.sh'"], stdout=subprocess.PIPE)
+    result1 = convert_timestamp(result1.stdout.decode("utf-8"))
+    result2 = subprocess.run(["ssh", "root@kube-worker-1", "'/root/timer.sh'"], stdout=subprocess.PIPE)
+    result2 = convert_timestamp(result2.stdout.decode("utf-8"))
+    if result1 > result2:
+        return result1
+    else:
+        return result2
+
+
+def extract_timestamp(line: str) -> datetime:
+    return convert_timestamp(line[:line.find(" ")-1])
+
+
+def parse_merge_and_store(global_directory_path: str, initial_timestamp: datetime, client: mongo_connection) -> list[dict]:
+    scheduler_pending = parse_and_store(global_directory_path + "/scheduler", initial_timestamp, client)
+    invoker_pending = parse_and_store(global_directory_path + "/invoker", initial_timestamp, client)
     resolved_pending = []
     for s_pending in scheduler_pending[0]:
         for i_pending in invoker_pending[0]:
@@ -114,7 +137,7 @@ def parse_merge_and_store(global_directory_path: str, client: mongo_connection) 
     return resolved_pending + scheduler_pending[1] + invoker_pending[1]
 
 
-def parse_and_store(directory_path: str, client: mongo_connection) -> list[list[dict]]:
+def parse_and_store(directory_path: str, initial_timestamp: datetime, client: mongo_connection) -> list[list[dict]]:
     files = [join(directory_path, f) for f in listdir(directory_path) if isfile(join(directory_path, f))]
     pending = []
     store = []
@@ -126,7 +149,7 @@ def parse_and_store(directory_path: str, client: mongo_connection) -> list[list[
                 line = f.readline()
                 if not line:
                     terminated = False
-                else:
+                elif extract_timestamp(line) >= initial_timestamp:
                     header_index = line.find("[Framework-Analysis]")
                     if header_index > 0 and "[Event]" not in line:
                         content_index = line.rfind("{")
