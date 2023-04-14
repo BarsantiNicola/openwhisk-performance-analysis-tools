@@ -1,6 +1,7 @@
 import subprocess
 from datetime import datetime
 from math import floor
+from time import sleep
 
 from mongo_connection import mongo_connection
 from worker import Worker
@@ -57,6 +58,23 @@ def launch_scenario(
         return
 
     initial_timestamp = get_initial_time()
+    launch_smooth(config, client)
+
+    print("Test Execution completed! Starting results extraction")
+    scenario_name = db_name + "_" + db_collection
+    extract_results(scenario_name)
+    result = parse_merge_and_store("/home/ubuntu/results/" + scenario_name, initial_timestamp, client)
+    print("Result extraction completed. Values already stored inside mongoDb at " + db_addr + ":" + str(
+        db_port) + "(" + db_name + " -> " + db_collection + ")")
+    return result
+
+
+def launch_smooth(config: list[WorkerConfig], client: mongo_connection):
+    mean_iat = 0
+    for conf in config:
+        mean_iat += conf.inter_arrival_time
+    mean_iat /= len(config)
+    delay = mean_iat / len(config)
     workers = [
         Worker(
             index,
@@ -74,15 +92,35 @@ def launch_scenario(
         worker.start()
 
     for worker in workers:
+        worker.go()
+        sleep(delay)
+
+    for worker in workers:
         worker.join()
 
-    print("Test Execution completed! Starting results extraction")
-    scenario_name = db_name + "_" + db_collection
-    extract_results(scenario_name)
-    result = parse_merge_and_store("/home/ubuntu/results/" + scenario_name, initial_timestamp, client)
-    print("Result extraction completed. Values already stored inside mongoDb at " + db_addr + ":" + str(
-        db_port) + "(" + db_name + " -> " + db_collection + ")")
-    return result
+
+def launch_burst(burst_repetition: int, burst_iat: float, burst_reqs: int, execution_time: float, action: str, client: mongo_connection):
+    workers = [
+        Worker(
+            index,
+            client,
+            floor((numpy.random.rand() * 1000)),
+            burst_repetition,
+            burst_iat,
+            "constant",
+            execution_time,
+            "constant",
+            action
+        ) for index in range(0, burst_reqs)]
+
+    for worker in workers:
+        worker.start()
+
+    for worker in workers:
+        worker.go()
+
+    for worker in workers:
+        worker.join()
 
 
 def extract_results(scenario_name: str) -> None:
@@ -111,7 +149,7 @@ def get_initial_time() -> datetime:
 
 
 def extract_timestamp(line: str) -> datetime:
-    return convert_timestamp(line[:line.find(" ")-1])
+    return convert_timestamp(line[:line.find(" ") - 1])
 
 
 def parse_merge_and_store(global_directory_path: str, initial_timestamp: datetime, client: mongo_connection) -> \
@@ -124,6 +162,7 @@ def parse_merge_and_store(global_directory_path: str, initial_timestamp: datetim
             if s_pending["activation_id"] == i_pending["activation_id"]:
                 resolved_pending.append(
                     {
+                        "kind": "local_response_time",
                         "response_time": i_pending["time"] - s_pending["time"],
                         "action": s_pending["action"],
                         "namespace": s_pending["namespace"],

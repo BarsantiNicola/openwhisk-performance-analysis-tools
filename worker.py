@@ -1,5 +1,6 @@
 import subprocess
 from math import floor
+from multiprocessing.pool import ThreadPool
 from subprocess import Popen
 from threading import Thread
 import time
@@ -32,9 +33,9 @@ class Worker(Thread):
             client: mongo_connection,
             seed: int,
             n_reqs: int,
-            mean_inter_arrival_time: int,
+            mean_inter_arrival_time: float,
             iat_distribution: str,
-            mean_execution_time: int,
+            mean_execution_time: float,
             et_distribution: str,
             action: str):
 
@@ -51,10 +52,12 @@ class Worker(Thread):
         self.counter = 0
         self.client = client
         self.worker_id = "test-worker" + str(worker_id)
+        self.ready = False
+        self.pool = ThreadPool(processes=10)
 
     # function to perform a request to openwhisk via wsk and wait its result
     def request_and_wait(self):
-        start = time.time()*1000
+        start = time.time() * 1000
         with Popen(["wsk", "action", "invoke", self.action, "-ir", "--param", "time", str(self.compute_et_time())],
                    stdout=subprocess.PIPE) as proc:
             result = proc.stdout.read().decode("utf-8")
@@ -62,11 +65,11 @@ class Worker(Thread):
                 self.error += 1
             else:
                 self.completed += 1
-        end = time.time()*1000
+        end = time.time() * 1000
         self.client.insert_one(
             {
                 "timestamp": end,
-                "response_time": end-start,
+                "response_time": end - start,
                 "kind": "global_response_time",
                 "action": self.action,
                 "actor": self.worker_id
@@ -99,8 +102,15 @@ class Worker(Thread):
     # thread behavior, will just make a request to openwhisk, wait for the response and evaluate it and repeat until
     # all the required requests are made
     def run(self):
+
+        while self.ready is False:
+            pass
+
         while self.counter < self.n_reqs:
-            self.request_and_wait()
+            self.pool.apply_async(self.request_and_wait)
             self.counter += 1
             time.sleep(self.compute_iat_time())
         print("Test completed. Success: " + str(self.completed) + " Failures: " + str(self.error))
+
+    def go(self):
+        self.ready = True
