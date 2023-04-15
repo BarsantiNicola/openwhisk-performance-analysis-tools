@@ -64,7 +64,8 @@ def launch_scenario(
     scenario_name = db_name + "_" + db_collection
     extract_results(scenario_name)
     result = parse_merge_and_store("/home/ubuntu/results/" + scenario_name, initial_timestamp, client)
-    print("Result extraction completed. Values already stored inside mongoDb at " + db_addr + ":" + str(
+    print("Result extraction completed(" + str(
+        len(result)) + " . Values already stored inside mongoDb at " + db_addr + ":" + str(
         db_port) + "(" + db_name + " -> " + db_collection + ")")
     return result
 
@@ -99,7 +100,8 @@ def launch_smooth(config: list[WorkerConfig], client: mongo_connection):
         worker.join()
 
 
-def launch_burst(burst_repetition: int, burst_iat: float, burst_reqs: int, execution_time: float, action: str, client: mongo_connection):
+def launch_burst(burst_repetition: int, burst_iat: float, burst_reqs: int, execution_time: float, action: str,
+                 client: mongo_connection):
     workers = [
         Worker(
             index,
