@@ -198,11 +198,14 @@ def parse_controller(directory_path: str, initial_timestamp: datetime, client: m
                 elif extract_timestamp(line) >= initial_timestamp:
                     header_index = line.find("[Framework-Analysis]")
                     if header_index > 0:
+                        print("line found")
                         content_index = line.rfind("{")
                         content = json.loads(line[content_index:].replace("'", "\""))
-                        if content["event"] is "activation_published":
+                        if content["event"] == "activation_published":
+                            print("activation")
                             activations.append(content)
                         else:
+                            print("termination")
                             terminations.append(content)
 
     for termination in terminations:
