@@ -1,3 +1,5 @@
+import secrets
+import string
 import subprocess
 from datetime import datetime
 from math import floor
@@ -213,6 +215,7 @@ def parse_controller(directory_path: str, initial_timestamp: datetime, client: m
             if termination["activation_id"] == activation["activation_id"]:
                 resolved.append(
                     {
+                        "_id": ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(24)),
                         "kind": "service_response_time",
                         "response_time": termination["time"] - activation["time"],
                         "action": activation["action"],
