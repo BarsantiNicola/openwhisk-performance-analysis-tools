@@ -1,5 +1,3 @@
-import secrets
-import string
 import subprocess
 from datetime import datetime
 from math import floor
@@ -200,14 +198,11 @@ def parse_controller(directory_path: str, initial_timestamp: datetime, client: m
                 elif extract_timestamp(line) >= initial_timestamp:
                     header_index = line.find("[Framework-Analysis]")
                     if header_index > 0:
-                        print("line found")
                         content_index = line.rfind("{")
                         content = json.loads(line[content_index:].replace("'", "\""))
-                        if content["event"] == "activation_published":
-                            print("activation")
+                        if content["event"] is "activation_published":
                             activations.append(content)
                         else:
-                            print("termination")
                             terminations.append(content)
 
     for termination in terminations:
@@ -215,7 +210,6 @@ def parse_controller(directory_path: str, initial_timestamp: datetime, client: m
             if termination["activation_id"] == activation["activation_id"]:
                 resolved.append(
                     {
-                        "_id": ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(24)),
                         "kind": "service_response_time",
                         "response_time": termination["time"] - activation["time"],
                         "action": activation["action"],
