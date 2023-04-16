@@ -128,10 +128,12 @@ def launch_burst(burst_repetition: int, burst_iat: float, burst_reqs: int, execu
 def extract_results(scenario_name: str) -> None:
     os.system("mkdir -p /home/ubuntu/results/" + scenario_name + "/invoker")
     os.system("mkdir -p /home/ubuntu/results/" + scenario_name + "/scheduler")
+    os.system("mkdir -p /home/ubuntu/results/" + scenario_name + "/controller")
     os.system("ssh root@kube-worker-0 '/root/extractor.sh' 2> /dev/null")
-    os.system("mv /home/ubuntu/results/loaded/* /home/ubuntu/results/" + scenario_name + "/scheduler")
     os.system("ssh root@kube-worker-1 '/root/extractor.sh' 2> /dev/null")
-    os.system("mv /home/ubuntu/results/loaded/* /home/ubuntu/results/" + scenario_name + "/invoker")
+    os.system("mv /home/ubuntu/results/loaded/scheduler/* /home/ubuntu/results/" + scenario_name + "/scheduler")
+    os.system("mv /home/ubuntu/results/loaded/invoker/* /home/ubuntu/results/" + scenario_name + "/invoker")
+    os.system("mv /home/ubuntu/results/loaded/controller/* /home/ubuntu/results/" + scenario_name + "/controller")
 
 
 def convert_timestamp(time: str) -> datetime:
@@ -156,6 +158,7 @@ def extract_timestamp(line: str) -> datetime:
 
 def parse_merge_and_store(global_directory_path: str, initial_timestamp: datetime, client: mongo_connection) -> \
         list[dict]:
+    parse_controller(global_directory_path + "/controller", initial_timestamp, client)
     scheduler_pending = parse_and_store(global_directory_path + "/scheduler", initial_timestamp, client)
     invoker_pending = parse_and_store(global_directory_path + "/invoker", initial_timestamp, client)
     resolved_pending = []
@@ -179,6 +182,47 @@ def parse_merge_and_store(global_directory_path: str, initial_timestamp: datetim
     return resolved_pending + scheduler_pending[1] + invoker_pending[1]
 
 
+def parse_controller(directory_path: str, initial_timestamp: datetime, client: mongo_connection) -> None:
+    files = [join(directory_path, f) for f in listdir(directory_path) if isfile(join(directory_path, f))]
+    activations = []
+    terminations = []
+    resolved = []
+    for file in files:
+        with open(file) as f:
+            print("Parsing file: " + file)
+            terminated = True
+            while terminated:
+                line = f.readline()
+                if not line:
+                    terminated = False
+                elif extract_timestamp(line) >= initial_timestamp:
+                    header_index = line.find("[Framework-Analysis]")
+                    if header_index > 0:
+                        content_index = line.rfind("{")
+                        content = json.loads(line[content_index:].replace("'", "\""))
+                        if content["event"] is "activation_published":
+                            activations.append(content)
+                        else:
+                            terminations.append(content)
+
+    for termination in terminations:
+        for activation in activations:
+            if termination["activation_id"] == activation["activation_id"]:
+                resolved.append(
+                    {
+                        "kind": "service_response_time",
+                        "response_time": termination["time"] - activation["time"],
+                        "action": activation["action"],
+                        "namespace": activation["namespace"],
+                        "timestamp": activation["time"]
+                    }
+                )
+                activations.remove(activation)
+                break
+        if len(resolved) > 0:
+            client.insert_many(resolved)
+
+
 def parse_and_store(directory_path: str, initial_timestamp: datetime, client: mongo_connection) -> list[list[dict]]:
     files = [join(directory_path, f) for f in listdir(directory_path) if isfile(join(directory_path, f))]
     pending = []
@@ -198,6 +242,23 @@ def parse_and_store(directory_path: str, initial_timestamp: datetime, client: mo
                         header = line[header_index:content_index]
                         content = json.loads(line[content_index:].replace("'", "\""))
                         if "[Data]" in header:
+                            if "incomingMsgCount" in content:
+                                content = {
+                                   "incomingMsgCount": int(content["incomingMsgCount"]),
+                                   "currentMsgCount": int(content["currentMsgCount"]),
+                                   "staleActivationNum": int(content["staleActivationNum"]),
+                                   "existingContainerCountInNamespace": int(content["existingContainerCountInNamespace"]),
+                                   "inProgressContainerCountInNamespace": int(content["inProgressContainerCountInNamespace"]),
+                                   "averageDuration": float(content["averageDuration"]),
+                                   "stateName": content["stateName"],
+                                   "timestamp": int(content["timestamp"]),
+                                   "iar": int(content["iar"]),
+                                   "maxWorkers": int(content["maxWorkers"]),
+                                   "minWorkers": int(content["minWorkers"]),
+                                   "readyWorkers": int(content["readyWorkers"]),
+                                   "containerPolicy": content["containerPolicy"],
+                                   "activationPolicy": content["activationPolicy"]
+                                }
                             store.append(content)
                         elif "[Measure]" in header:
                             pending.append(content)
