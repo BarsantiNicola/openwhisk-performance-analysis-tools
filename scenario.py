@@ -200,7 +200,7 @@ def parse_controller(directory_path: str, initial_timestamp: datetime, client: m
                     if header_index > 0:
                         content_index = line.rfind("{")
                         content = json.loads(line[content_index:].replace("'", "\""))
-                        if content["event"] is "activation_published":
+                        if content["event"] == "activation_published":
                             activations.append(content)
                         else:
                             terminations.append(content)
