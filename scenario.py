@@ -219,8 +219,8 @@ def parse_controller(directory_path: str, initial_timestamp: datetime, client: m
                 )
                 activations.remove(activation)
                 break
-        if len(resolved) > 0:
-            client.insert_many(resolved)
+    if len(resolved) > 0:
+        client.insert_many(resolved)
 
 
 def parse_and_store(directory_path: str, initial_timestamp: datetime, client: mongo_connection) -> list[list[dict]]:
