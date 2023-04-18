@@ -1,3 +1,5 @@
+import math
+import statistics
 from math import sqrt
 
 from imblearn.under_sampling import RandomUnderSampler
@@ -7,7 +9,7 @@ from matplotlib import pyplot as plt
 from scipy import stats
 
 
-def autocorr(values: list) -> float:
+def autocorr(values: list) -> list:
     return sm.tsa.acf(values)
 
 
@@ -25,14 +27,33 @@ def list_std(values: list) -> float:
     return sqrt(list_var(values))
 
 
+def list_median(values: list) -> float:
+    return statistics.median(values)
+
+
+def extract(timestamps: list, values: list, min_threshold: int, max_threshold: int) -> (list, list):
+    results = [], []
+    for index in range(0, len(values)):
+        if max_threshold > values[index] >= min_threshold:
+            results[0].append(timestamps[index])
+            results[1].append(values[index])
+    return results
+
+
 def steady_state(values: list) -> int:
     threshold = list_std(values) * 1.5
     m_average = moving_average(values)
     steady = 0
-    for index in range(0, len(m_average) - 1):
-        if m_average[index] - m_average[index + 1] < threshold:
-            steady = index
-            break
+    counter = 0
+    #for index in range(0, len(m_average) - 1):
+    #    if m_average[index] - m_average[index + 1] < threshold:
+    #        counter += 1
+    #        if counter == 50:
+    #            steady = index-50
+    #            break
+
+    #if steady == 0:
+    steady = math.floor(len(values)/5)
     plt.plot(range(0, len(m_average)), m_average)
     plt.axvline(x=steady)
     plt.title = "Steady state analysis"
@@ -59,9 +80,22 @@ def subsample(timestamp: list, values: list) -> (list, list):
     return rus.fit_sample(timestamp, values)
 
 
+def check_autocorr(a_corr: list, ci: float) -> bool:
+    for corr in a_corr:
+        if corr > ci:
+            return False
+    return True
+
+
 def subsample_to_independence(timestamp: list, values: list, accuracy: float) -> (list, list):
+    values_l = len(values)
+    cycle = 0
     ci = (stats.norm.ppf(accuracy)) / sqrt(len(values))
-    while autocorr(values) > ci:
+    while check_autocorr(autocorr(values), ci):
+        cycle += 1
         timestamp, values = subsample(timestamp, values)
         ci = (stats.norm.ppf(accuracy)) / sqrt(len(values))
+
+    print("Subsampling terminated(" + str(values_l) + "->" + str(len(values)) + "). Required " + str(
+        cycle) + " iteration.")
     return timestamp, values

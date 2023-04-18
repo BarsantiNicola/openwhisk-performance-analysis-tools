@@ -244,6 +244,7 @@ def parse_and_store(directory_path: str, initial_timestamp: datetime, client: mo
                         if "[Data]" in header:
                             if "incomingMsgCount" in content:
                                 content = {
+                                   "kind": "snapshot-info",
                                    "incomingMsgCount": int(content["incomingMsgCount"]),
                                    "currentMsgCount": int(content["currentMsgCount"]),
                                    "staleActivationNum": int(content["staleActivationNum"]),
