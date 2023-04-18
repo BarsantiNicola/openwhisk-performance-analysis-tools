@@ -59,7 +59,23 @@ class BurstWorker(Thread):
 
     # function to perform a request to openwhisk via wsk and wait its result
     def request_and_wait(self):
-        print("launch " + str(time.time()))
+        start = time.time() * 1000
+        with Popen(["wsk", "action", "invoke", self.action, "-ir", "--param", "time", str(self.compute_et_time())],
+                   stdout=subprocess.PIPE) as proc:
+            result = proc.stdout.read().decode("utf-8")
+            if "error" in result or len(result) == 0:
+                self.error += 1
+            else:
+                self.completed += 1
+        end = time.time() * 1000
+        self.client.insert_one(
+            {
+                "timestamp": end,
+                "response_time": end - start,
+                "kind": "global_response_time",
+                "action": self.action,
+                "actor": self.worker_id
+            })
 
     # function to compute a random sample accordingly the given mean_inter_arrival_time and iat_distribution
     def compute_iat_time(self):
