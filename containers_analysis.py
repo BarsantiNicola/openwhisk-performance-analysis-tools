@@ -43,6 +43,7 @@ def container_single_analysis(title: str, timestamp: list, data: list, path: str
     plot_epmf(title + " epmf", path, data)
     return {
         "mean": basics_tool.list_mean(data),
+        "ci": basics_tool.ci(data, 0.99),
         "median": basics_tool.list_median(data),
         "var": basics_tool.list_var(data),
         "std": basics_tool.list_std(data),

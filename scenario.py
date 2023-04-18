@@ -3,6 +3,7 @@ from datetime import datetime
 from math import floor
 from time import sleep
 
+from burst_worker import BurstWorker
 from mongo_connection import mongo_connection
 from worker import Worker
 import numpy
@@ -40,14 +41,37 @@ class WorkerConfig:
             return [self, other]
 
 
+class BurstWorkerConfig:
+    def __init__(self, n_burst: int, burst_size: int, burst_inter_arrival_time: int, random_distribution: str,
+                 execution_time: int,
+                 et_distribution: str,
+                 action: str):
+        self.n_bursts = n_burst
+        self.burst_size = burst_size
+        self.burst_inter_arrival_time = burst_inter_arrival_time
+        self.burst_iat_distribution = random_distribution
+        self.mean_execution_time = execution_time
+        self.et_distribution = et_distribution
+        self.action = action
+
+    def __mul__(self, other: int):
+        return [self for _ in range(0, other)]
+
+    def __add__(self, other):
+        if isinstance(other, list):
+            return [self] + other
+        if isinstance(other, WorkerConfig):
+            return [self, other]
+
+
 def launch_scenario(
         init_seed: int,
         db_addr: str,
         db_port: int,
         db_name: str,
         db_collection: str,
-        config: WorkerConfig | list[WorkerConfig]):
-    if isinstance(config, WorkerConfig):
+        config: WorkerConfig | list[WorkerConfig] | BurstWorkerConfig | list[BurstWorkerConfig]):
+    if isinstance(config, WorkerConfig) or isinstance(config, BurstWorkerConfig):
         config = [config]
     numpy.random.seed(init_seed)
 
@@ -58,7 +82,10 @@ def launch_scenario(
         return
 
     initial_timestamp = get_initial_time()
-    launch_smooth(config, client)
+    if isinstance(config[0], WorkerConfig):
+        launch_smooth(config, client)
+    else:
+        launch_burst(config, client)
 
     print("Test Execution completed! Starting results extraction")
     scenario_name = db_name + "_" + db_collection
@@ -100,20 +127,20 @@ def launch_smooth(config: list[WorkerConfig], client: mongo_connection):
         worker.join()
 
 
-def launch_burst(burst_repetition: int, burst_iat: float, burst_reqs: int, execution_time: float, action: str,
-                 client: mongo_connection):
+def launch_burst(config: list[BurstWorkerConfig], client: mongo_connection):
     workers = [
-        Worker(
+        BurstWorker(
             index,
             client,
             floor((numpy.random.rand() * 1000)),
-            burst_repetition,
-            burst_iat,
-            "constant",
-            execution_time,
-            "constant",
-            action
-        ) for index in range(0, burst_reqs)]
+            config[index].n_bursts,
+            config[index].burst_size,
+            config[index].burst_inter_arrival_time,
+            config[index].burst_iat_distribution,
+            config[index].mean_execution_time,
+            config[index].et_distribution,
+            config[index].action
+        ) for index in range(0, len(config))]
 
     for worker in workers:
         worker.start()
@@ -244,21 +271,23 @@ def parse_and_store(directory_path: str, initial_timestamp: datetime, client: mo
                         if "[Data]" in header:
                             if "incomingMsgCount" in content:
                                 content = {
-                                   "kind": "snapshot-info",
-                                   "incomingMsgCount": int(content["incomingMsgCount"]),
-                                   "currentMsgCount": int(content["currentMsgCount"]),
-                                   "staleActivationNum": int(content["staleActivationNum"]),
-                                   "existingContainerCountInNamespace": int(content["existingContainerCountInNamespace"]),
-                                   "inProgressContainerCountInNamespace": int(content["inProgressContainerCountInNamespace"]),
-                                   "averageDuration": float(content["averageDuration"]),
-                                   "stateName": content["stateName"],
-                                   "timestamp": int(content["timestamp"]),
-                                   "iar": int(content["iar"]),
-                                   "maxWorkers": int(content["maxWorkers"]),
-                                   "minWorkers": int(content["minWorkers"]),
-                                   "readyWorkers": int(content["readyWorkers"]),
-                                   "containerPolicy": content["containerPolicy"],
-                                   "activationPolicy": content["activationPolicy"]
+                                    "kind": "snapshot-info",
+                                    "incomingMsgCount": int(content["incomingMsgCount"]),
+                                    "currentMsgCount": int(content["currentMsgCount"]),
+                                    "staleActivationNum": int(content["staleActivationNum"]),
+                                    "existingContainerCountInNamespace": int(
+                                        content["existingContainerCountInNamespace"]),
+                                    "inProgressContainerCountInNamespace": int(
+                                        content["inProgressContainerCountInNamespace"]),
+                                    "averageDuration": float(content["averageDuration"]),
+                                    "stateName": content["stateName"],
+                                    "timestamp": int(content["timestamp"]),
+                                    "iar": int(content["iar"]),
+                                    "maxWorkers": int(content["maxWorkers"]),
+                                    "minWorkers": int(content["minWorkers"]),
+                                    "readyWorkers": int(content["readyWorkers"]),
+                                    "containerPolicy": content["containerPolicy"],
+                                    "activationPolicy": content["activationPolicy"]
                                 }
                             store.append(content)
                         elif "[Measure]" in header:

@@ -79,6 +79,7 @@ def graph_response_time(timestamps: list[dict], values: list[dict], path: str, s
     plot_boxplot(action + " boxplot", boxplot_path, values)
     return {
         "mean": basics_tool.list_mean(values),
+        "ci": basics_tool.ci(values, 0.99),
         "median": basics_tool.list_median(values),
         "var": basics_tool.list_var(values),
         "std": basics_tool.list_std(values),

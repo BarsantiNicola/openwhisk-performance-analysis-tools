@@ -87,6 +87,14 @@ def check_autocorr(a_corr: list, ci: float) -> bool:
     return True
 
 
+def ci(values: list, accuracy: float):
+    alpha = 1. - accuracy
+    sigma = list_std(values)
+    z_critical = stats.norm.ppf(q=accuracy + alpha/2)
+    standard_error = sigma / math.sqrt(len(values))
+    return z_critical * standard_error
+
+
 def subsample_to_independence(timestamp: list, values: list, accuracy: float) -> (list, list):
     values_l = len(values)
     cycle = 0

@@ -26,14 +26,15 @@ Thread for executing requests to a remote openwhisk service. It expects:
 """
 
 
-class Worker(Thread):
+class BurstWorker(Thread):
     def __init__(
             self,
             worker_id: int,
             client: mongo_connection,
             seed: int,
-            n_reqs: int,
-            mean_inter_arrival_time: float,
+            n_bursts: int,
+            burst_size: int,
+            burst_inter_arrival_time: float,
             iat_distribution: str,
             mean_execution_time: float,
             et_distribution: str,
@@ -41,11 +42,12 @@ class Worker(Thread):
 
         Thread.__init__(self)
         self.local_random_generator = numpy.random.RandomState(seed)
-        self.mean_inter_arrival_time = mean_inter_arrival_time
+        self.burst_inter_arrival_time = burst_inter_arrival_time
         self.iat_distribution = iat_distribution
         self.et_distribution = et_distribution
         self.mean_execution_time = mean_execution_time
-        self.n_reqs = n_reqs
+        self.n_burst = n_bursts
+        self.burst_size = burst_size
         self.action = action
         self.error = 0  # number of errors encountered
         self.completed = 0  # number of completed requests
@@ -53,7 +55,7 @@ class Worker(Thread):
         self.client = client
         self.worker_id = "test-worker" + str(worker_id)
         self.ready = False
-        self.pool = ThreadPool(processes=10)
+        self.pool = ThreadPool(processes=burst_size*2)
 
     # function to perform a request to openwhisk via wsk and wait its result
     def request_and_wait(self):
@@ -63,13 +65,13 @@ class Worker(Thread):
     def compute_iat_time(self):
         match self.iat_distribution:
             case "constant":
-                return self.mean_inter_arrival_time
+                return self.burst_inter_arrival_time
             case "exponential":
-                return floor(self.local_random_generator.exponential(self.mean_inter_arrival_time))
+                return floor(self.local_random_generator.exponential(self.burst_inter_arrival_time))
             case "gaussian":
-                return floor(self.local_random_generator.normal(self.mean_inter_arrival_time))
+                return floor(self.local_random_generator.normal(self.burst_inter_arrival_time))
             case _:
-                return self.mean_inter_arrival_time
+                return self.burst_inter_arrival_time
 
     # function to compute a random sample accordingly the given mean_execution_arrival_time and et_distribution
     def compute_et_time(self):
@@ -90,8 +92,11 @@ class Worker(Thread):
         while self.ready is False:
             pass
 
-        while self.counter < self.n_reqs:
-            self.pool.apply_async(self.request_and_wait)
+        while self.counter < self.n_burst:
+            for x in range(0, self.burst_size):
+                self.pool.apply_async(self.request_and_wait)
+                time.sleep(0.05)
+
             self.counter += 1
             time.sleep(self.compute_iat_time())
         print("Test completed. Success: " + str(self.completed) + " Failures: " + str(self.error))
