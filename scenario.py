@@ -271,31 +271,34 @@ def parse_and_store(directory_path: str, initial_timestamp: datetime, client: mo
                     if header_index > 0 and "[Event]" not in line:
                         content_index = line.rfind("{")
                         header = line[header_index:content_index]
-                        content = json.loads(line[content_index:].replace("'", "\""))
-                        if "[Data]" in header:
-                            if "incomingMsgCount" in content:
-                                content = {
-                                    "kind": "snapshot-info",
-                                    "incomingMsgCount": int(content["incomingMsgCount"]),
-                                    "currentMsgCount": int(content["currentMsgCount"]),
-                                    "staleActivationNum": int(content["staleActivationNum"]),
-                                    "existingContainerCountInNamespace": int(
-                                        content["existingContainerCountInNamespace"]),
-                                    "inProgressContainerCountInNamespace": int(
-                                        content["inProgressContainerCountInNamespace"]),
-                                    "averageDuration": float(content["averageDuration"]),
-                                    "stateName": content["stateName"],
-                                    "timestamp": int(content["timestamp"]),
-                                    "iar": int(content["iar"]),
-                                    "maxWorkers": int(content["maxWorkers"]),
-                                    "minWorkers": int(content["minWorkers"]),
-                                    "readyWorkers": int(content["readyWorkers"]),
-                                    "containerPolicy": content["containerPolicy"],
-                                    "activationPolicy": content["activationPolicy"]
-                                }
-                            store.append(content)
-                        elif "[Measure]" in header:
-                            pending.append(content)
+                        try:
+                            content = json.loads(line[content_index:].replace("'", "\""))
+                            if "[Data]" in header:
+                                if "incomingMsgCount" in content:
+                                    content = {
+                                        "kind": "snapshot-info",
+                                        "incomingMsgCount": int(content["incomingMsgCount"]),
+                                        "currentMsgCount": int(content["currentMsgCount"]),
+                                        "staleActivationNum": int(content["staleActivationNum"]),
+                                        "existingContainerCountInNamespace": int(
+                                            content["existingContainerCountInNamespace"]),
+                                        "inProgressContainerCountInNamespace": int(
+                                            content["inProgressContainerCountInNamespace"]),
+                                        "averageDuration": float(content["averageDuration"]),
+                                        "stateName": content["stateName"],
+                                        "timestamp": int(content["timestamp"]),
+                                        "iar": int(content["iar"]),
+                                        "maxWorkers": int(content["maxWorkers"]),
+                                        "minWorkers": int(content["minWorkers"]),
+                                        "readyWorkers": int(content["readyWorkers"]),
+                                        "containerPolicy": content["containerPolicy"],
+                                        "activationPolicy": content["activationPolicy"]
+                                    }
+                                store.append(content)
+                            elif "[Measure]" in header:
+                                pending.append(content)
+                        except JSONDecodeError:
+                            pass
     if len(store) > 0:
         client.insert_many(store)
     return [pending, store]
