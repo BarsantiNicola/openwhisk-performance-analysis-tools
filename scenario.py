@@ -1,5 +1,6 @@
 import subprocess
 from datetime import datetime
+from json import JSONDecodeError
 from math import floor
 from time import sleep
 
@@ -226,11 +227,14 @@ def parse_controller(directory_path: str, initial_timestamp: datetime, client: m
                     header_index = line.find("[Framework-Analysis]")
                     if header_index > 0:
                         content_index = line.rfind("{")
-                        content = json.loads(line[content_index:].replace("'", "\""))
-                        if content["event"] == "activation_published":
-                            activations.append(content)
-                        else:
-                            terminations.append(content)
+                        try:
+                            content = json.loads(line[content_index:].replace("'", "\""))
+                            if content["event"] == "activation_published":
+                                activations.append(content)
+                            else:
+                                terminations.append(content)
+                        except JSONDecodeError:
+                            pass
 
     for termination in terminations:
         for activation in activations:

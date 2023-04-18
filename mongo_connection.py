@@ -33,16 +33,22 @@ class mongo_connection:
     def fetch_data(self, kind: str) -> list[dict]:
         match kind:
             case "minimum_response_time":
-                return list(self.collection.find({"kind": "local_response_time"}, {}).sort("timestamp", pymongo.ASCENDING))
+                return list(self.collection.find({"kind": "local_response_time"}, {})
+                            .sort("timestamp", pymongo.ASCENDING))
             case "service_response_time":
-                return list(self.collection.find({"kind": "service_response_time"}, {}).sort("timestamp", pymongo.ASCENDING))
+                return list(self.collection.find({"kind": "service_response_time"}, {})
+                            .sort("timestamp", pymongo.ASCENDING))
             case "client_response_time":
-                return list(self.collection.find({"kind": "global_response_time"}, {}).sort("timestamp", pymongo.ASCENDING))
+                return list(self.collection.find({"kind": "global_response_time"}, {})
+                            .sort("timestamp", pymongo.ASCENDING))
             case "data_exchange":
-                return list(self.collection.find({"kind": "state-registry-data"}, {}).sort("timestamp", pymongo.ASCENDING))
+                return list(self.collection.find({"kind": "state-registry-data"}, {})
+                            .sort("timestamp", pymongo.ASCENDING))
             case "snapshot_info":
-                return list(self.collection.find({"staleActivationNum": {"$exists": 1}}, {}).sort("timestamp", pymongo.ASCENDING))
+                return list(self.collection.find({"staleActivationNum": {"$exists": 1}}, {})
+                            .sort("timestamp", pymongo.ASCENDING))
             case "supervisor_info":
-                return list(self.collection.find({"kind": "supervisor-state"}, {}).sort("timestamp", pymongo.ASCENDING))
+                return list(self.collection.find({"kind": "supervisor-state"}, {})
+                            .sort("timestamp", pymongo.ASCENDING))
             case "all":
                 return self.collection.find()

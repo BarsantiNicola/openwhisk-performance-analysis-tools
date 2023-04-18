@@ -2,15 +2,18 @@ import math
 import statistics
 from math import sqrt
 
-from imblearn.under_sampling import RandomUnderSampler
-import statsmodels.api as sm
+import pandas
 import numpy
 from matplotlib import pyplot as plt
 from scipy import stats
 
 
-def autocorr(values: list) -> list:
-    return sm.tsa.acf(values)
+def autocorr(values: list, max_lag: int = 10) -> list:
+    ser = pandas.Series(values)
+    result = []
+    for i in range(1, max_lag + 1):
+        result.append(ser.autocorr(i))
+    return result
 
 
 def list_mean(values: list) -> float:
@@ -41,21 +44,24 @@ def extract(timestamps: list, values: list, min_threshold: int, max_threshold: i
 
 
 def steady_state(values: list) -> int:
-    threshold = list_std(values) * 1.5
+    threshold = list_std(values)*0.1
     m_average = moving_average(values)
+    mean = list_mean(values)
     steady = 0
     counter = 0
-    #for index in range(0, len(m_average) - 1):
-    #    if m_average[index] - m_average[index + 1] < threshold:
-    #        counter += 1
-    #        if counter == 50:
-    #            steady = index-50
-    #            break
+    for index in range(0, len(values) - 1):
+        if abs(mean-values[index]) < threshold:
+            counter += 1
+            if counter == 50:
+                steady = index
+                break
+        else:
+            counter = 0
+    if steady == 0:
+        steady = math.floor(len(values) / 5)
 
-    #if steady == 0:
-    steady = math.floor(len(values)/5)
     plt.plot(range(0, len(m_average)), m_average)
-    plt.axvline(x=steady)
+    plt.axvline(x=steady, color='r')
     plt.title = "Steady state analysis"
     plt.show()
     plt.clf()
@@ -75,14 +81,19 @@ def moving_average(values: list) -> list:
     return moving_averages
 
 
-def subsample(timestamp: list, values: list) -> (list, list):
-    rus = RandomUnderSampler()
-    return rus.fit_sample(timestamp, values)
+def subsample(timestamp: list, values: list, p=.8) -> (list, list):
+    ret_times = []
+    ret_values = []
+    for i in range(0, len(values)):
+        if numpy.random.rand() < p:
+            ret_times.append(timestamp[i])
+            ret_values.append(values[i])
+    return ret_times, ret_values
 
 
-def check_autocorr(a_corr: list, ci: float) -> bool:
+def check_autocorr(a_corr: list, conf_i: float) -> bool:
     for corr in a_corr:
-        if corr > ci:
+        if corr > conf_i:
             return False
     return True
 
@@ -90,7 +101,7 @@ def check_autocorr(a_corr: list, ci: float) -> bool:
 def ci(values: list, accuracy: float):
     alpha = 1. - accuracy
     sigma = list_std(values)
-    z_critical = stats.norm.ppf(q=accuracy + alpha/2)
+    z_critical = stats.norm.ppf(q=accuracy + alpha / 2)
     standard_error = sigma / math.sqrt(len(values))
     return z_critical * standard_error
 
@@ -98,11 +109,11 @@ def ci(values: list, accuracy: float):
 def subsample_to_independence(timestamp: list, values: list, accuracy: float) -> (list, list):
     values_l = len(values)
     cycle = 0
-    ci = (stats.norm.ppf(accuracy)) / sqrt(len(values))
-    while check_autocorr(autocorr(values), ci):
+    conf_i = (stats.norm.ppf(accuracy)) / sqrt(len(values))
+    while check_autocorr(autocorr(values), conf_i):
         cycle += 1
         timestamp, values = subsample(timestamp, values)
-        ci = (stats.norm.ppf(accuracy)) / sqrt(len(values))
+        conf_i = (stats.norm.ppf(accuracy)) / sqrt(len(values))
 
     print("Subsampling terminated(" + str(values_l) + "->" + str(len(values)) + "). Required " + str(
         cycle) + " iteration.")
