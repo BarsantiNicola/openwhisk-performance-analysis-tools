@@ -75,7 +75,7 @@ def launch_scenario(
     if isinstance(config, WorkerConfig) or isinstance(config, BurstWorkerConfig):
         config = [config]
     numpy.random.seed(init_seed)
-
+    
     try:
         client = mongo_connection(db_addr, db_port, db_name, db_collection)
     except UnboundLocalError as error:
@@ -159,6 +159,8 @@ def extract_results(scenario_name: str) -> None:
     os.system("mkdir -p /home/ubuntu/results/" + scenario_name + "/controller")
     os.system("ssh root@kube-worker-0 '/root/extractor.sh' 2> /dev/null")
     os.system("ssh root@kube-worker-1 '/root/extractor.sh' 2> /dev/null")
+    os.system("ssh root@kube-worker-2 '/root/extractor.sh' 2> /dev/null")
+    os.system("ssh root@kube-worker-3 '/root/extractor.sh' 2> /dev/null")
     os.system("mv /home/ubuntu/results/loaded/scheduler/* /home/ubuntu/results/" + scenario_name + "/scheduler")
     os.system("mv /home/ubuntu/results/loaded/invoker/* /home/ubuntu/results/" + scenario_name + "/invoker")
     os.system("mv /home/ubuntu/results/loaded/controller/* /home/ubuntu/results/" + scenario_name + "/controller")

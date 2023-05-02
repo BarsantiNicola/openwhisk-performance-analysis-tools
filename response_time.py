@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 from matplotlib import pyplot as plt
 import numpy
@@ -30,6 +32,52 @@ def extract_response_time(data: list[dict]) -> (list, list, list):
     print("done! " + str(len(values)))
     return actions, normalized_timestamps, values
 
+def analyze_exp4(path: str, host, port, db_name, tags: list[str]):
+    results : [tuple[list,list]] = []
+    for tag in tags:
+        values = []
+        ci = []
+        for num in range(1,6):
+            print("[ResponseTime-Analysis] Starting data extraction from mongoDb ["+tag + ":"+str(num)+"]...", end="")
+            client = mongo_connection(host, port, db_name, "exp3_worker_" + tag + "_clients_" + str(num) + "_et_450ms_time_500ms", True)
+            data = client.fetch_data("service_response_time")
+            print("done!")
+            client.client.close()
+            actions_client, timestamp_client, values_client = extract_response_time(data)
+            steady = basics_tool.steady_state(values_client[0])
+            _, independent_values = basics_tool.subsample_to_independence(
+                timestamp_client[0][steady:], values_client[0][steady:], 0.99)
+            values.append(basics_tool.list_mean(independent_values)-200)
+            ci.append(basics_tool.ci(independent_values, 0.99))
+        results.append((values, ci))
+    plot_multivalues(path+"/response_time_parallel_clients.png", list(range(1,6)), results, tags, "Parallel Clients")
+    containers_analysis.analyze_exp4(path, host, port, db_name, tags)
+
+def analyze_exp3(path: str, host, port, db_name, tags: list[str], identificators: list[int]):
+    results : [tuple[list,list]] = []
+    for tag in tags:
+        values = []
+        ci = []
+        for identificator in identificators:
+            print("[ResponseTime-Analysis] Starting data extraction from mongoDb ["+tag + ":"+str(identificator)+"]...", end="")
+            if tag == "115" and identificator > 500:
+                client = mongo_connection(host, port, db_name,
+                                          "exp2_3_worker_" + tag + "_et_" + str(identificator) + "_time_500ms_rep_10000",
+                                          True)
+            else:
+                client = mongo_connection(host, port, db_name, "exp3_worker_" + tag + "_et_" + str(identificator) + "_time_500ms_rep_10000", True)
+            data = client.fetch_data("service_response_time")
+            print("done!")
+            client.client.close()
+            actions_client, timestamp_client, values_client = extract_response_time(data)
+            steady = basics_tool.steady_state(values_client[0])
+            _, independent_values = basics_tool.subsample_to_independence(
+                timestamp_client[0][steady:], values_client[0][steady:], 0.99)
+            values.append(basics_tool.list_mean(independent_values)-identificator)
+            ci.append(basics_tool.ci(independent_values, 0.99))
+        results.append((values, ci))
+    plot_multivalues(path+"/response_time.png", identificators, results, tags, "Execution Time(ms)")
+    containers_analysis.analyze_exp3(path, host, port, db_name, tags, identificators)
 
 def analyze_scenario(host, port, db_name, scenario):
     client = mongo_connection(host, port, db_name, scenario, True)
@@ -100,6 +148,7 @@ def plot_values(t: str, path: str, values: list, timestamps: list):
     plt.title = "mytitle"
     plt.xlabel('Time(ms)', fontsize=14)
     plt.ylabel('Response Time(ms)', fontsize=14)
+    plt.ylim(0, 1000)
     plt.savefig(path + "/" + t, dpi=100, bbox_inches='tight')
     plt.clf()
 
@@ -155,3 +204,37 @@ def annotate_boxplot(bpdict, annotate_params=None,
                  (x_loc + 1 + x_offset, bpdict['caps'][x_loc * 2].get_ydata()[0]), **annotate_params)
     plt.annotate('       95%: ' + str("{:.2f}".format(bpdict['caps'][(x_loc * 2) + 1].get_ydata()[0])),
                  (x_loc + 1 + x_offset, bpdict['caps'][(x_loc * 2) + 1].get_ydata()[0]), **annotate_params)
+
+
+def plot_multivalues(path: str, tags: list[int], values: list[tuple[list,list]], legend: list[str], x_label: str):
+    colors = ['b', 'm', 'c', 'g', 'y', 'k', 'w']
+    stringed_legend = []
+    max_value = 0
+    min_value = -1
+    for l in legend:
+        stringed_legend.append( "readyW: " + str(l[0]) + " minW: " + str(l[1]) + " maxW: " + str(l[2]))
+    for index in range(0, len(values)):
+        min_ci = []
+        max_ci = []
+        for i in range(0, len(values[index][0])):
+            max_ci.append(values[index][0][i]+values[index][1][i])
+            min_ci.append(values[index][0][i]-values[index][1][i])
+        M = max(max_ci)
+        m = min(min_ci)
+        if M > max_value:
+            max_value = M
+        if m < min_value or min_value == -1:
+            min_value = m
+
+        plt.plot(tags, values[index][0], color=colors[index], label=stringed_legend[index])
+        #plt.errorbar(tags, values[index][0], yerr=values[index][1], fmt="o", color="r")
+        plt.plot(tags, max_ci, color=colors[index], linestyle='dashed')
+        plt.plot(tags, min_ci, color=colors[index], linestyle='dashed')
+        plt.fill_between(tags, min_ci, max_ci, alpha=0.2, color=colors[index])
+        plt.ylabel('Normalized Response Time(ms)', fontsize=14)
+    plt.xlabel(x_label, fontsize=14)
+    plt.legend(loc="upper left")
+    plt.grid()
+    plt.ylim(min_value-abs(math.floor(min_value*0.3)), max_value+math.floor(max_value*0.3))
+    plt.savefig(path, dpi=100, bbox_inches='tight')
+    plt.clf()

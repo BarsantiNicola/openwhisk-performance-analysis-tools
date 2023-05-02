@@ -5,6 +5,7 @@ from math import sqrt
 import pandas
 import numpy
 from matplotlib import pyplot as plt
+from numpy import random
 from scipy import stats
 
 
@@ -106,15 +107,29 @@ def ci(values: list, accuracy: float):
     return z_critical * standard_error
 
 
-def subsample_to_independence(timestamp: list, values: list, accuracy: float) -> (list, list):
+def subsample_to_independence(timestamp: list, values: list, accuracy: float, retrials: int = 10, shuffle: bool = False) -> (list, list):
     values_l = len(values)
     cycle = 0
+    sub_sample = values
+    sub_sample_times = timestamp
+    p = .9
     conf_i = (stats.norm.ppf(accuracy)) / sqrt(len(values))
-    while check_autocorr(autocorr(values), conf_i):
+    if shuffle:
+        random.shuffle(values)
+    while not check_autocorr(autocorr(sub_sample), conf_i) :
         cycle += 1
-        timestamp, values = subsample(timestamp, values)
-        conf_i = (stats.norm.ppf(accuracy)) / sqrt(len(values))
+
+        sub_sample_times, sub_sample = subsample(timestamp, values, p)
+        if len(sub_sample) == 0:
+            sub_sample_times, sub_sample = subsample(timestamp, values, p+0.01)
+            break
+        if shuffle:
+            random.shuffle(values)
+        if cycle % retrials == 0:
+            p -= .01
+        print(str(len(sub_sample)))
+        conf_i = (stats.norm.ppf(accuracy)) / sqrt(len(sub_sample))
 
     print("Subsampling terminated(" + str(values_l) + "->" + str(len(values)) + "). Required " + str(
         cycle) + " iteration.")
-    return timestamp, values
+    return sub_sample_times, sub_sample
