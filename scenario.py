@@ -173,14 +173,6 @@ def convert_timestamp(time: str) -> datetime:
 
 def get_initial_time() -> datetime:
     result1 = subprocess.run(["ssh", "root@kube-worker-0", "'/root/timer.sh'"], stdout=subprocess.PIPE)
-    result1 = convert_timestamp(result1.stdout.decode("utf-8"))
-    result2 = subprocess.run(["ssh", "root@kube-worker-1", "'/root/timer.sh'"], stdout=subprocess.PIPE)
-    result2 = convert_timestamp(result2.stdout.decode("utf-8"))
-    if result1 > result2:
-        return result1
-    else:
-        return result2
-
 
 def extract_timestamp(line: str) -> datetime:
     return convert_timestamp(line[:line.find(" ") - 1])
