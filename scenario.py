@@ -167,7 +167,7 @@ def extract_results(scenario_name: str) -> None:
 
 
 def convert_timestamp(time: str) -> datetime:
-    result = time[time.rfind("[")+1:time.rfind("+") - 3]
+    result = time[time.rfind("[")+1:time.rfind("Z") - 1]
     return datetime.strptime(result, "%Y-%m-%dT%H:%M:%S.%f")
 
 
