@@ -267,13 +267,11 @@ def parse_and_store(directory_path: str, initial_timestamp: datetime, client: mo
                 if not line:
                     terminated = False
                 elif extract_timestamp(line) >= initial_timestamp:
-                    print("valid line: " + line)
                     header_index = line.find("[Framework-Analysis]")
                     if header_index > 0 and "[Event]" not in line:
                         content_index = line.rfind("{")
                         header = line[header_index:content_index]
                         try:
-                            print("Content: " + line[content_index:line.find("}")+1])
                             content = json.loads(line[content_index:line.find("}")+1].replace("'", "\""))
                             if "[Data]" in line:
                                 if "incomingMsgCount" in content:
@@ -300,7 +298,6 @@ def parse_and_store(directory_path: str, initial_timestamp: datetime, client: mo
                             elif "[Measure]" in line:
                                 pending.append(content)
                         except JSONDecodeError:
-                            print("Error jsondecode error")
                             pass
     if len(store) > 0:
         client.insert_many(store)
