@@ -300,6 +300,7 @@ def parse_and_store(directory_path: str, initial_timestamp: datetime, client: mo
                             elif "[Measure]" in line:
                                 pending.append(content)
                         except JSONDecodeError:
+                            print("Error jsondecode error")
                             pass
     if len(store) > 0:
         client.insert_many(store)
