@@ -178,8 +178,10 @@ def get_initial_time() -> datetime:
 
 
 def extract_timestamp(line: str) -> datetime:
-    print(line)
-    return convert_timestamp(line[line.find("["):line.find("]")])
+    try:
+        return convert_timestamp(line[line.find("["):line.find("]")])
+    except ValueError:
+        return datetime.fromtimestamp(0)
 
 
 def parse_merge_and_store(global_directory_path: str, initial_timestamp: datetime, client: mongo_connection) -> \
