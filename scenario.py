@@ -274,7 +274,7 @@ def parse_and_store(directory_path: str, initial_timestamp: datetime, client: mo
                         header = line[header_index:content_index]
                         try:
                             content = json.loads(line[content_index:].replace("'", "\""))
-                            if "[Data]" in header:
+                            if "[Data]" in line:
                                 if "incomingMsgCount" in content:
                                     content = {
                                         "kind": "snapshot-info",
@@ -297,7 +297,7 @@ def parse_and_store(directory_path: str, initial_timestamp: datetime, client: mo
                                     }
                                 store.append(content)
                                 print("Append: " + content)
-                            elif "[Measure]" in header:
+                            elif "[Measure]" in line:
                                 pending.append(content)
                         except JSONDecodeError:
                             pass
