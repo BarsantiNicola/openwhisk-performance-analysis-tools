@@ -158,7 +158,6 @@ def extract_results(scenario_name: str) -> None:
     os.system("mkdir -p /home/ubuntu/results/" + scenario_name + "/scheduler")
     os.system("mkdir -p /home/ubuntu/results/" + scenario_name + "/controller")
     os.system("ssh root@kube-worker-0 '/root/extractor.sh' 2> /dev/null")
-    os.system("ssh root@kube-worker-1 '/root/extractor.sh' 2> /dev/null")
     os.system("ssh root@kube-worker-2 '/root/extractor.sh' 2> /dev/null")
     os.system("ssh root@kube-worker-3 '/root/extractor.sh' 2> /dev/null")
     os.system("mv /home/ubuntu/results/loaded/scheduler/* /home/ubuntu/results/" + scenario_name + "/scheduler")
@@ -181,6 +180,7 @@ def extract_timestamp(line: str) -> datetime:
     try:
         return convert_timestamp(line[line.find("["):line.find("]")])
     except ValueError:
+        print("Error: " + line)
         return datetime.fromtimestamp(0)
 
 
