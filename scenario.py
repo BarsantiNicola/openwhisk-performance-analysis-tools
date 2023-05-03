@@ -178,6 +178,7 @@ def get_initial_time() -> datetime:
 
 
 def extract_timestamp(line: str) -> datetime:
+    print(line)
     return convert_timestamp(line[line.find("["):line.find("]")])
 
 
