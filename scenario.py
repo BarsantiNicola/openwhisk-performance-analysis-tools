@@ -273,6 +273,7 @@ def parse_and_store(directory_path: str, initial_timestamp: datetime, client: mo
                         content_index = line.rfind("{")
                         header = line[header_index:content_index]
                         try:
+                            print("Content: " + line[content_index:line.find("}")])
                             content = json.loads(line[content_index:line.find("}")].replace("'", "\""))
                             if "[Data]" in line:
                                 if "incomingMsgCount" in content:
