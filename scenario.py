@@ -173,6 +173,9 @@ def convert_timestamp(time: str) -> datetime:
 
 def get_initial_time() -> datetime:
     result1 = subprocess.run(["ssh", "root@kube-worker-0", "'/root/timer.sh'"], stdout=subprocess.PIPE)
+    return convert_timestamp(result1.stdout.decode("utf-8"))
+
+
 
 def extract_timestamp(line: str) -> datetime:
     return convert_timestamp(line[:line.find(" ") - 1])
