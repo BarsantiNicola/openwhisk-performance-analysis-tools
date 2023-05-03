@@ -295,6 +295,7 @@ def parse_and_store(directory_path: str, initial_timestamp: datetime, client: mo
                                         "activationPolicy": content["activationPolicy"]
                                     }
                                 store.append(content)
+                                print("Append: " + content)
                             elif "[Measure]" in header:
                                 pending.append(content)
                         except JSONDecodeError:
