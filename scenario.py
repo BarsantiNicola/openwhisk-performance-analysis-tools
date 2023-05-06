@@ -98,6 +98,38 @@ def launch_scenario(
     return result
 
 
+def launch_multi_scenario(
+        init_seed: int,
+        db_addr: str,
+        db_port: int,
+        db_name: str,
+        db_collection: str,
+        config: WorkerConfig | list[WorkerConfig],
+        repetition: int):
+    if isinstance(config, WorkerConfig):
+        config = [config]
+    numpy.random.seed(init_seed)
+
+    try:
+        client = mongo_connection(db_addr, db_port, db_name, db_collection)
+    except UnboundLocalError as error:
+        print(error.name)
+        return
+
+    initial_timestamp = get_initial_time()
+    for _ in range(0, repetition):
+        for conf in config:
+            launch_smooth([conf], client)
+
+    print("Test Execution completed! Starting results extraction")
+    scenario_name = db_name + "_" + db_collection
+    extract_results(scenario_name)
+    result = parse_merge_and_store("/home/ubuntu/results/" + scenario_name, initial_timestamp, client)
+    print("Result extraction completed(" + str(
+        len(result)) + " . Values already stored inside mongoDb at " + db_addr + ":" + str(
+        db_port) + "(" + db_name + " -> " + db_collection + ")")
+    return result
+
 def launch_smooth(config: list[WorkerConfig], client: mongo_connection):
     mean_iat = 0
     for conf in config:
