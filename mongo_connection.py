@@ -50,5 +50,8 @@ class mongo_connection:
             case "supervisor_info":
                 return list(self.collection.find({"kind": "supervisor-state"}, {})
                             .sort("timestamp", pymongo.ASCENDING))
+            case "container_creation":
+                return list(self.collection.find({"kind": "container-created"}, {})
+                            .sort("timestamp", pymongo.ASCENDING))
             case "all":
                 return self.collection.find()
