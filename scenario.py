@@ -1,4 +1,5 @@
 import subprocess
+import time
 from datetime import datetime
 from json import JSONDecodeError
 from math import floor
@@ -105,7 +106,8 @@ def launch_multi_scenario(
         db_name: str,
         db_collection: str,
         config: WorkerConfig | list[WorkerConfig],
-        repetition: int):
+        repetition: int,
+        delay: int):
     if isinstance(config, WorkerConfig):
         config = [config]
     numpy.random.seed(init_seed)
@@ -120,6 +122,7 @@ def launch_multi_scenario(
     for _ in range(0, repetition):
         for conf in config:
             launch_smooth([conf], client)
+            time.sleep(delay)
 
     print("Test Execution completed! Starting results extraction")
     scenario_name = db_name + "_" + db_collection
