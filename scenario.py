@@ -119,8 +119,8 @@ def launch_multi_scenario(
         return
 
     initial_timestamp = get_initial_time()
-    for _ in range(0, repetition):
-        for conf in config:
+    for conf in config:
+        for _ in range(0, repetition):
             launch_smooth([conf], client)
             time.sleep(delay)
 
