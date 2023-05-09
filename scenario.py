@@ -267,10 +267,11 @@ def parse_controller(directory_path: str, initial_timestamp: datetime, client: m
                     print("CHECKED LINE")
                     header_index = line.find("[Framework-Analysis]")
                     if header_index > 0:
+                        line = line[header_index:]
                         print("VALID LINE")
-                        content_index = line.rfind("{")
+                        content_index = line.find("{")
                         try:
-                            content = json.loads(line[content_index:].replace("'", "\""))
+                            content = json.loads(line[content_index:line.find("}")+1].replace("'", "\""))
                             if content["event"] == "activation_published":
                                 activations.append(content)
                             else:
@@ -316,7 +317,7 @@ def parse_and_store(directory_path: str, initial_timestamp: datetime, client: mo
                         content_index = line.find("{")
                         header = line[:content_index]
                         try:
-                            content = json.loads(line[content_index:line.find("}")].replace("'", "\""))
+                            content = json.loads(line[content_index:line.find("}")+1].replace("'", "\""))
                             print("EXTRACTED DATA")
                             if "[Data]" in line:
                                 if "incomingMsgCount" in content:
