@@ -218,7 +218,7 @@ def extract_timestamp(line: str) -> datetime:
     try:
         return convert_timestamp(line[line.find("["):line.find("]")])
     except ValueError:
-        print("Error: " + line)
+        print("Error durint timestamp extraction: " + line)
         return datetime.fromtimestamp(0)
 
 
@@ -228,6 +228,7 @@ def parse_merge_and_store(global_directory_path: str, initial_timestamp: datetim
     scheduler_pending = parse_and_store(global_directory_path + "/scheduler", initial_timestamp, client)
     invoker_pending = parse_and_store(global_directory_path + "/invoker", initial_timestamp, client)
     resolved_pending = []
+    print("Starting result merging")
     for s_pending in scheduler_pending[0]:
         for i_pending in invoker_pending[0]:
             if s_pending["activation_id"] == i_pending["activation_id"]:
@@ -243,6 +244,7 @@ def parse_merge_and_store(global_directory_path: str, initial_timestamp: datetim
                 )
                 invoker_pending[0].remove(i_pending)
                 break
+    print("Merging concluded: " + str(len(resolved_pending)))
     if len(resolved_pending) > 0:
         client.insert_many(resolved_pending)
     return resolved_pending + scheduler_pending[1] + invoker_pending[1]
@@ -337,6 +339,7 @@ def parse_and_store(directory_path: str, initial_timestamp: datetime, client: mo
                                 pending.append(content)
                         except JSONDecodeError:
                             pass
+    print("Terminated parsing: " + str(len(store)))
     if len(store) > 0:
         client.insert_many(store)
     return [pending, store]
