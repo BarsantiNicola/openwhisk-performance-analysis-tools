@@ -312,9 +312,9 @@ def parse_and_store(directory_path: str, initial_timestamp: datetime, client: mo
                     print("CHECKED LINE")
                     header_index = line.find("[Framework-Analysis]")
                     if header_index > 0 and "[Event]" not in line:
-                        print("VALID LINE")
-                        content_index = line.rfind("{")
-                        header = line[header_index:content_index]
+                        line = line[header_index:]
+                        content_index = line.find("{")
+                        header = line[:content_index]
                         try:
                             content = json.loads(line[content_index:line.find("}")].replace("'", "\""))
                             print("EXTRACTED DATA")
@@ -343,7 +343,7 @@ def parse_and_store(directory_path: str, initial_timestamp: datetime, client: mo
                             elif "[Measure]" in line:
                                 pending.append(content)
                         except JSONDecodeError:
-                            print("ERROR DURING JSON: " + line )
+                            print("ERROR DURING JSON: " + line[content_index:line.find("}")].replace("'", "\""))
                             pass
     print("Terminated parsing: " + str(len(store)))
     if len(store) > 0:
