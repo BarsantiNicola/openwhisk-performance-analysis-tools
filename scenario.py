@@ -264,8 +264,10 @@ def parse_controller(directory_path: str, initial_timestamp: datetime, client: m
                 if not line:
                     terminated = False
                 elif extract_timestamp(line) >= initial_timestamp:
+                    print("CHECKED LINE")
                     header_index = line.find("[Framework-Analysis]")
                     if header_index > 0:
+                        print("VALID LINE")
                         content_index = line.rfind("{")
                         try:
                             content = json.loads(line[content_index:].replace("'", "\""))
@@ -307,12 +309,15 @@ def parse_and_store(directory_path: str, initial_timestamp: datetime, client: mo
                 if not line:
                     terminated = False
                 elif extract_timestamp(line) >= initial_timestamp:
+                    print("CHECKED LINE")
                     header_index = line.find("[Framework-Analysis]")
                     if header_index > 0 and "[Event]" not in line:
+                        print("VALID LINE")
                         content_index = line.rfind("{")
                         header = line[header_index:content_index]
                         try:
                             content = json.loads(line[content_index:line.find("}")].replace("'", "\""))
+                            print("EXTRACTED DATA")
                             if "[Data]" in line:
                                 if "incomingMsgCount" in content:
                                     content = {
@@ -338,6 +343,7 @@ def parse_and_store(directory_path: str, initial_timestamp: datetime, client: mo
                             elif "[Measure]" in line:
                                 pending.append(content)
                         except JSONDecodeError:
+                            print("ERROR DURING JSON: " + line )
                             pass
     print("Terminated parsing: " + str(len(store)))
     if len(store) > 0:
