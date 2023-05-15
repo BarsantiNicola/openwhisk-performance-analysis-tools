@@ -198,12 +198,13 @@ def launch_smooth(config: list[WorkerConfig], client: mongo_connection):
             config[index].action
         ) for index in range(0, len(config))]
 
+    print("N.Workers on launch: " + str(len(workers)))
+
     for worker in workers:
         worker.start()
 
     for worker in workers:
         worker.go()
-        sleep(delay)
 
     for worker in workers:
         worker.join()
