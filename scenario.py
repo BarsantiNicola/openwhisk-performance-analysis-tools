@@ -77,7 +77,7 @@ def launch_natural_scenario(
     n_reqs_per_action: int,
     user_to_iot_ratio: float):
 
-    if user_to_iot_ratio > 0:
+    if user_to_iot_ratio > 1 or user_to_iot_ratio < 0:
         print("Error, user_to_iot_ratio must be in 0,1 interval")
         return
 
