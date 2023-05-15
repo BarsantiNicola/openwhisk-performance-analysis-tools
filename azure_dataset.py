@@ -19,7 +19,7 @@ def evaluate_iat(data: pandas.DataFrame, app: str, func: str):
     start_times.sort()
     for index in range(0, len(start_times)-1):
         iat.append(start_times[index+1]-start_times[index])
-    return numpy.mean(iat)
+    return numpy.mean(iat)/1000
 
 
 def get_actions(data: pandas.DataFrame) -> list[dict]:
@@ -34,7 +34,7 @@ def evaluate_mean_action_duration(data:pandas.DataFrame, app: str, func: str):
     durations = []
     subsect = data.loc[(data.app == app) & (data.func == func)]
     for index, row in subsect.iterrows():
-        durations.append(row.duration*1000)
+        durations.append(row.duration)
     return numpy.mean(durations)
 
 
