@@ -96,8 +96,10 @@ def launch_natural_scenario(
     counter = 0
     for action in actions:
         if random.uniform(0,1) > user_to_iot_ratio:
+            print("Creating IOT action " + str(counter)+" duration: " + str(action["duration"]) + " iat: " + str(action["iat"]))
             config.append(WorkerConfig(n_reqs_per_action, action["iat"], "constant", action["duration"], "constant", "taskJS"+str(counter)))
         else:
+            print("Creating USER action " + str(counter)+" duration: " + str(action["duration"]) + " iat: " + str(action["iat"]))
             config.append(WorkerConfig(n_reqs_per_action, action["iat"], "constant", action["duration"], "constant","taskJS"+str(counter)))
         counter += 1
     launch_smooth(config, client)
@@ -205,6 +207,7 @@ def launch_smooth(config: list[WorkerConfig], client: mongo_connection):
 
     for worker in workers:
         worker.go()
+        sleep(delay)
 
     for worker in workers:
         worker.join()
