@@ -93,9 +93,9 @@ class Worker(Thread):
             case "constant":
                 return self.mean_execution_time
             case "exponential":
-                return floor(self.local_random_generator.exponential(self.mean_execution_time))
+                return abs(floor(self.local_random_generator.exponential(self.mean_execution_time)))
             case "gaussian":
-                return floor(self.local_random_generator.normal(self.mean_execution_time))
+                return abs(floor(self.local_random_generator.normal(self.mean_execution_time)))
             case _:
                 return self.mean_execution_time
 

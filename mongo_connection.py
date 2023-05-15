@@ -30,7 +30,7 @@ class mongo_connection:
         else:
             return InsertManyResult([], False)
 
-    def fetch_data(self, kind: str) -> list[dict]:
+    def fetch_data(self, kind: str, invoker:int=0) -> list[dict]:
         match kind:
             case "minimum_response_time":
                 return list(self.collection.find({"kind": "local_response_time"}, {})
@@ -52,6 +52,9 @@ class mongo_connection:
                             .sort("timestamp", pymongo.ASCENDING))
             case "container_creation":
                 return list(self.collection.find({"kind": "container-created"}, {})
+                            .sort("timestamp", pymongo.ASCENDING))
+            case "invokers_memory":
+                return list(self.collection.find({"kind": "invokers-container-counter", "invoker": invoker}, {})
                             .sort("timestamp", pymongo.ASCENDING))
             case "all":
                 return self.collection.find()

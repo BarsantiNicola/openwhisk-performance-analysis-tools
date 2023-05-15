@@ -98,6 +98,70 @@ def groupByInvoker( values: (list,list), size:int) -> list[tuple[list[Any], list
     return results
 
 
+def extract_memory(values: list) -> (list, list):
+    timestamps = []
+    ret_values = []
+    setted = 0
+    for value in values:
+        timestamps.append(value["timestamp"])
+        val = int(value["memory"])
+        ret_values.append(val)
+    return timestamps, ret_values
+
+
+def normalize_series(values:list[tuple[list,list]])-> (list,list):
+    global_min = -1
+    for value in values:
+        if len(value[0]) > 0:
+            m = numpy.min(value[0])
+            if global_min == -1 or m<global_min:
+                global_min = m
+    normalized = []
+    for value in values:
+        normalized.append(([x-global_min for x in value[0]], value[1]))
+    return normalized
+
+
+def analyze_exp6(path:str, host, port, db_name, tags: list[int], invokers: list[int]):
+    for tag in tags:
+        client = mongo_connection(host, port, db_name, "exp6_consolidation_size_"+str(tag) + "_rep_50", True)
+        series = []
+        for invoker in invokers:
+            data = client.fetch_data("invokers_memory", invoker)
+            series.append(extract_memory(data))
+        series = normalize_series(series)
+        plot_memory(path+"/memory_"+str(tag) + ".png", "Invokers Usage", series, ["Invoker " + str(invoker) for invoker in invokers])
+
+def analyze_exp6_singles(path:str, host, port, db_name):
+    for size in range(1,40):
+        os.system("mkdir -p /home/nico/Scrivania/consolidation/" + str(size))
+        if size < 20:
+            client = mongo_connection(host, port, db_name, "exp5_consolidation_size_" + str(size) + "_rep_50", True)
+        else:
+            client = mongo_connection(host, port, db_name, "exp6_consolidation_size_" + str(size) + "_rep_50", True)
+        series = []
+        for invoker in [0,1,2,3,4]:
+            data =client.fetch_data("invokers_memory", invoker)
+            series.append(extract_memory(data))
+        series = normalize_series(series)
+        for invoker in [0,1,2,3,4]:
+            plot_memory(path + "/" + str(size) + "/memory_" + str(size)+"invoker_" + str(invoker) + ".png", "Invoker " + str(invoker) + " Usage", series[invoker],["invoker"])
+
+def analyze_exp7_singles(path:str, host, port, db_name):
+    for size in range(1,41):
+        os.system("mkdir -p /home/nico/Scrivania/consolidation4/" + str(size))
+        if size < 20:
+            client = mongo_connection(host, port, db_name, "exp12_consolidation_size_" + str(size) + "_rep_3", True)
+        else:
+            client = mongo_connection(host, port, db_name, "exp12_consolidation_size_" + str(size) + "_rep_3", True)
+        series = []
+        for invoker in [0,1,2,3,4]:
+            data =client.fetch_data("invokers_memory", invoker)
+            series.append(extract_memory(data))
+        series = normalize_series(series)
+        for invoker in [0,1,2,3,4]:
+            plot_memory(path + "/" + str(size) + "/memory_" + str(size)+"invoker_" + str(invoker) + ".png", "Invoker " + str(invoker) + " Usage", series[invoker],["invoker"])
+
 def analize_consolidation(path: str, title: str, host, port, db_name, tags: list[int], invokers: list[str]):
     merged_results = []
     for tag in tags:
@@ -112,6 +176,20 @@ def analize_consolidation(path: str, title: str, host, port, db_name, tags: list
     merged_results = groupByInvoker(merged_results, len(invokers))
     plot_multivalues(path, title, tags, merged_results,["invoker 0", "invoker 1", "invoker 2", "invoker 3", "invoker 4", "invoker 5"], "Burst Size")
 
+
+def plot_memory(path:str, title:str, values: list[tuple[list,list]], le: list[str]):
+    colors = ['b', 'm', 'c', 'g', 'y', 'k', 'w']
+    if len(values[1]) == 0:
+        return
+
+    plt.ylabel('Containers', fontsize=14)
+    plt.xlabel("Time(ms)", fontsize=14)
+    plt.title(title)
+
+    plt.ylim(0, 9)
+    plt.bar(range(0,len(values[1])), values[1], color= colors[0])
+    plt.savefig(path, dpi=1000, bbox_inches='tight')
+    plt.clf()
 
 def plot_multivalues(path: str, title: str, tags: list[int], values: list[tuple[list,list]], legend: list[str],
                      x_label: str):

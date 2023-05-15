@@ -1,3 +1,4 @@
+import random
 import subprocess
 import time
 from datetime import datetime
@@ -5,6 +6,7 @@ from json import JSONDecodeError
 from math import floor
 from time import sleep
 
+import azure_dataset
 from burst_worker import BurstWorker
 from mongo_connection import mongo_connection
 from worker import Worker
@@ -26,12 +28,12 @@ class WorkerConfig:
     def __init__(self, n_reqs, inter_arrival_time: int, random_distribution: str, execution_time: int,
                  et_distribution: str,
                  action: str):
-        self.inter_arrival_time = inter_arrival_time
+        self.inter_arrival_time =  inter_arrival_time
         self.random_distribution = random_distribution
-        self.execution_time = execution_time
-        self.n_reqs = n_reqs
-        self.et_distribution = et_distribution
-        self.action = action
+        self.execution_time =      execution_time
+        self.n_reqs =              n_reqs
+        self.et_distribution =     et_distribution
+        self.action =              action
 
     def __mul__(self, other: int):
         return [self for _ in range(0, other)]
@@ -48,13 +50,13 @@ class BurstWorkerConfig:
                  execution_time: int,
                  et_distribution: str,
                  action: str):
-        self.n_bursts = n_burst
-        self.burst_size = burst_size
+        self.n_bursts =                 n_burst
+        self.burst_size =               burst_size
         self.burst_inter_arrival_time = burst_inter_arrival_time
-        self.burst_iat_distribution = random_distribution
-        self.mean_execution_time = execution_time
-        self.et_distribution = et_distribution
-        self.action = action
+        self.burst_iat_distribution =   random_distribution
+        self.mean_execution_time =      execution_time
+        self.et_distribution =          et_distribution
+        self.action =                   action
 
     def __mul__(self, other: int):
         return [self for _ in range(0, other)]
@@ -64,6 +66,49 @@ class BurstWorkerConfig:
             return [self] + other
         if isinstance(other, WorkerConfig):
             return [self, other]
+
+def launch_natural_scenario(
+    init_seed: int,
+    db_addr: str,
+    db_port: int,
+    db_name: str,
+    db_collection: str,
+    n_actions: int,
+    n_reqs_per_action: int,
+    user_to_iot_ratio: float):
+
+    if user_to_iot_ratio > 0:
+        print("Error, user_to_iot_ratio must be in 0,1 interval")
+        return
+
+    numpy.random.seed(init_seed)
+
+    try:
+        client = mongo_connection(db_addr, db_port, db_name, db_collection)
+    except UnboundLocalError as error:
+        print(error.name)
+        return
+
+    initial_timestamp = get_initial_time()
+    actions = azure_dataset.retrieve()[:n_actions]
+
+    config = []
+    for action in actions:
+        if random.uniform(0,1) > user_to_iot_ratio:
+            config.append(WorkerConfig(n_reqs_per_action, action["iat"], "gaussian", action["duration"], "gaussian", "taskJS"))
+        else:
+            config.append(WorkerConfig(n_reqs_per_action, action["iat"], "exponential", action["duration"], "exponential","taskJS"))
+
+    launch_smooth(config, client)
+
+    print("Test Execution completed! Starting results extraction")
+    scenario_name = db_name + "_" + db_collection
+    extract_results(scenario_name)
+    result = parse_merge_and_store("/home/ubuntu/results/" + scenario_name, initial_timestamp, client)
+    print("Result extraction completed(" + str(
+        len(result)) + " . Values already stored inside mongoDb at " + db_addr + ":" + str(
+        db_port) + "(" + db_name + " -> " + db_collection + ")")
+    return result
 
 
 def launch_scenario(
