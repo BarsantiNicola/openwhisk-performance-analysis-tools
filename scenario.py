@@ -96,9 +96,9 @@ def launch_natural_scenario(
     counter = 0
     for action in actions:
         if random.uniform(0,1) > user_to_iot_ratio:
-            config.append(WorkerConfig(n_reqs_per_action, action["iat"], "gaussian", action["duration"], "gaussian", "taskJS"+str(counter)))
+            config.append(WorkerConfig(n_reqs_per_action, action["iat"], "constant", action["duration"], "constant", "taskJS"+str(counter)))
         else:
-            config.append(WorkerConfig(n_reqs_per_action, action["iat"], "exponential", action["duration"], "exponential","taskJS"+str(counter)))
+            config.append(WorkerConfig(n_reqs_per_action, action["iat"], "constant", action["duration"], "constant","taskJS"+str(counter)))
         counter += 1
     launch_smooth(config, client)
 
