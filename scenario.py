@@ -93,12 +93,13 @@ def launch_natural_scenario(
     actions = azure_dataset.retrieve()[:n_actions]
 
     config = []
+    counter = 0
     for action in actions:
         if random.uniform(0,1) > user_to_iot_ratio:
-            config.append(WorkerConfig(n_reqs_per_action, action["iat"], "gaussian", action["duration"], "gaussian", "taskJS"))
+            config.append(WorkerConfig(n_reqs_per_action, action["iat"], "gaussian", action["duration"], "gaussian", "taskJS"+str(counter)))
         else:
-            config.append(WorkerConfig(n_reqs_per_action, action["iat"], "exponential", action["duration"], "exponential","taskJS"))
-
+            config.append(WorkerConfig(n_reqs_per_action, action["iat"], "exponential", action["duration"], "exponential","taskJS"+str(counter)))
+        counter += 1
     launch_smooth(config, client)
 
     print("Test Execution completed! Starting results extraction")
