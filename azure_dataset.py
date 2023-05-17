@@ -1,3 +1,4 @@
+
 import pandas
 import numpy
 import json
@@ -30,15 +31,16 @@ def get_actions(data: pandas.DataFrame) -> list[dict]:
     return [action.split("_") for action in actions]
 
 
-def evaluate_mean_action_duration(data:pandas.DataFrame, app: str, func: str):
+def evaluate_mean_action_duration(data: pandas.DataFrame, app: str, func: str):
     durations = []
     subsect = data.loc[(data.app == app) & (data.func == func)]
     for index, row in subsect.iterrows():
         durations.append(row.duration)
-    return numpy.mean(durations)
+    return int(numpy.mean(durations).round())
 
 
 def analyze():
+
     data = get_dataset()
     actions = get_actions(data)
     compacted = []

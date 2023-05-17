@@ -147,6 +147,22 @@ def analyze_exp6_singles(path:str, host, port, db_name):
         for invoker in [0,1,2,3,4]:
             plot_memory(path + "/" + str(size) + "/memory_" + str(size)+"invoker_" + str(invoker) + ".png", "Invoker " + str(invoker) + " Usage", series[invoker],["invoker"])
 
+def analyze_real(path:str,host,port,db_name):
+    os.system("mkdir -p " + path)
+    client = mongo_connection(host, port, db_name, "real_type_consolidate_2_actions_10_constant_rep_500", True)
+    print("Extracted data")
+    series = []
+    for invoker in [0, 1, 2, 3, 4]:
+        data = client.fetch_data("invokers_memory", invoker)
+        series.append(extract_memory(data))
+        print("Data Fetched")
+    series = normalize_series(series)
+    print("plotting")
+    for invoker in [0, 1, 2, 3, 4]:
+        plot_memory(path+"/invoker_" + str(invoker) + ".png",
+                    "Invoker " + str(invoker) + " Usage", series[invoker], ["invoker"])
+
+
 def analyze_exp7_singles(path:str, host, port, db_name):
     for size in range(1,41):
         os.system("mkdir -p /home/nico/Scrivania/consolidation4/" + str(size))
@@ -179,15 +195,17 @@ def analize_consolidation(path: str, title: str, host, port, db_name, tags: list
 
 def plot_memory(path:str, title:str, values: list[tuple[list,list]], le: list[str]):
     colors = ['b', 'm', 'c', 'g', 'y', 'k', 'w']
+    print("ok")
     if len(values[1]) == 0:
         return
-
+    print("ok2")
     plt.ylabel('Containers', fontsize=14)
     plt.xlabel("Time(ms)", fontsize=14)
     plt.title(title)
 
     plt.ylim(0, 9)
     plt.bar(range(0,len(values[1])), values[1], color= colors[0])
+    print("Creatingchart")
     plt.savefig(path, dpi=1000, bbox_inches='tight')
     plt.clf()
 

@@ -314,11 +314,9 @@ def parse_controller(directory_path: str, initial_timestamp: datetime, client: m
                 if not line:
                     terminated = False
                 elif extract_timestamp(line) >= initial_timestamp:
-                    print("CHECKED LINE")
                     header_index = line.find("[Framework-Analysis]")
                     if header_index > 0:
                         line = line[header_index:]
-                        print("VALID LINE")
                         content_index = line.find("{")
                         try:
                             content = json.loads(line[content_index:line.find("}")+1].replace("'", "\""))
@@ -360,7 +358,6 @@ def parse_and_store(directory_path: str, initial_timestamp: datetime, client: mo
                 if not line:
                     terminated = False
                 elif extract_timestamp(line) >= initial_timestamp:
-                    print("CHECKED LINE")
                     header_index = line.find("[Framework-Analysis]")
                     if header_index > 0 and "[Event]" not in line:
                         line = line[header_index:]
@@ -368,7 +365,6 @@ def parse_and_store(directory_path: str, initial_timestamp: datetime, client: mo
                         header = line[:content_index]
                         try:
                             content = json.loads(line[content_index:line.find("}")+1].replace("'", "\""))
-                            print("EXTRACTED DATA")
                             if "[Data]" in line:
                                 if "incomingMsgCount" in content:
                                     content = {
@@ -394,7 +390,6 @@ def parse_and_store(directory_path: str, initial_timestamp: datetime, client: mo
                             elif "[Measure]" in line:
                                 pending.append(content)
                         except JSONDecodeError:
-                            print("ERROR DURING JSON: " + line[content_index:line.find("}")].replace("'", "\""))
                             pass
     print("Terminated parsing: " + str(len(store)))
     if len(store) > 0:
