@@ -99,7 +99,7 @@ def launch_traced_scenario(
         print(error.name)
         return
 
-    #initial_timestamp = get_initial_time()
+    initial_timestamp = get_initial_time()
     actions = azure_dataset.retrieve(trace_path)[:n_actions]
 
     config = []
