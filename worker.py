@@ -55,7 +55,7 @@ class TracedWorker(Thread):
             pass
         current_time = 0
         for t in self.trace:
-            if t[0] > self.limit:
+            if t[0]/1000 > self.limit:
                 break
             time.sleep((t[0]-current_time)/1000)
             current_time = t[0]
