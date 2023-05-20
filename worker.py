@@ -26,6 +26,68 @@ Thread for executing requests to a remote openwhisk service. It expects:
 """
 
 
+class TracedWorker(Thread):
+    def __init__(
+            self,
+            worker_id: int,
+            client: mongo_connection,
+            limit: int,
+            trace: list[tuple[float,int]],
+            action: str):
+
+        Thread.__init__(self)
+        self.limit = limit
+        self.action = action
+        self.trace = trace
+        self.error = 0  # number of errors encountered
+        self.completed = 0  # number of completed requests
+        self.counter = 0
+        self.client = client
+        self.worker_id = "test-worker" + str(worker_id)
+        self.ready = False
+        self.pool = ThreadPool(processes=10)
+
+    # thread behavior, will just make a request to openwhisk, wait for the response and evaluate it and repeat until
+    # all the required requests are made
+    def run(self):
+
+        while self.ready is False:
+            pass
+        current_time = 0
+        for t in self.trace:
+            if t[0] > self.limit:
+                break
+            time.sleep((t[0]-current_time)/1000)
+            current_time = t[0]
+            self.counter += 1
+            self.request_and_wait(t[1])
+
+        print("Test completed. Success: " + str(self.completed) + " Failures: " + str(self.error))
+
+    def go(self):
+        self.ready = True
+
+    # function to perform a request to openwhisk via wsk and wait its result
+    def request_and_wait(self, et: int):
+        start = time.time() * 1000
+        with Popen(["wsk", "action", "invoke", self.action, "-ir", "--param", "time", str(min(19000, et))],
+                   stdout=subprocess.PIPE) as proc:
+            result = proc.stdout.read().decode("utf-8")
+            if "error" in result or len(result) == 0:
+                self.error += 1
+            else:
+                self.completed += 1
+        end = time.time() * 1000
+        self.client.insert_one(
+            {
+                "timestamp": end,
+                "response_time": end - start,
+                "kind": "global_response_time",
+                "action": self.action,
+                "actor": self.worker_id
+            })
+
+
 class Worker(Thread):
     def __init__(
             self,

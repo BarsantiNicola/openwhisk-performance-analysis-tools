@@ -9,7 +9,7 @@ from time import sleep
 import azure_dataset
 from burst_worker import BurstWorker
 from mongo_connection import mongo_connection
-from worker import Worker
+from worker import Worker, TracedWorker
 import numpy
 import os
 import json
@@ -67,6 +67,57 @@ class BurstWorkerConfig:
         if isinstance(other, WorkerConfig):
             return [self, other]
 
+class TracedWorkerConfig:
+    def __init__(self, limit: int, trace: list[tuple[float,int]], action: str):
+        self.limit =                    limit
+        self.trace =                    trace
+        self.action =                   action
+
+    def __mul__(self, other: int):
+        return [self for _ in range(0, other)]
+
+    def __add__(self, other):
+        if isinstance(other, list):
+            return [self] + other
+        if isinstance(other, TracedWorkerConfig):
+            return [self, other]
+def launch_traced_scenario(
+        init_seed: int,
+        db_addr: str,
+        db_port: int,
+        db_name: str,
+        db_collection: str,
+        n_actions: int,
+        duration: int,
+        trace_path: str
+):
+    numpy.random.seed(init_seed)
+
+    try:
+        client = mongo_connection(db_addr, db_port, db_name, db_collection)
+    except UnboundLocalError as error:
+        print(error.name)
+        return
+
+    #initial_timestamp = get_initial_time()
+    actions = azure_dataset.retrieve(trace_path)[:n_actions]
+
+    config = []
+    counter = 0
+    for action in actions:
+        config.append(TracedWorkerConfig(duration, action["trace"], "taskJS" + str(counter)))
+        counter += 1
+    launch_traced(config, client)
+
+    print("Test Execution completed! Starting results extraction")
+    scenario_name = db_name + "_" + db_collection
+    extract_results(scenario_name)
+    result = parse_merge_and_store("/home/ubuntu/results/" + scenario_name, initial_timestamp, client)
+    print("Result extraction completed(" + str(
+        len(result)) + " . Values already stored inside mongoDb at " + db_addr + ":" + str(
+        db_port) + "(" + db_name + " -> " + db_collection + ")")
+    return result
+
 def launch_natural_scenario(
     init_seed: int,
     db_addr: str,
@@ -75,7 +126,8 @@ def launch_natural_scenario(
     db_collection: str,
     n_actions: int,
     n_reqs_per_action: int,
-    user_to_iot_ratio: float):
+    user_to_iot_ratio: float,
+    trace_path:str):
 
     if user_to_iot_ratio > 1 or user_to_iot_ratio < 0:
         print("Error, user_to_iot_ratio must be in 0,1 interval")
@@ -90,7 +142,7 @@ def launch_natural_scenario(
         return
 
     initial_timestamp = get_initial_time()
-    actions = azure_dataset.retrieve()[:n_actions]
+    actions = azure_dataset.retrieve(trace_path)[:n_actions]
 
     config = []
     counter = 0
@@ -213,6 +265,28 @@ def launch_smooth(config: list[WorkerConfig], client: mongo_connection):
         worker.join()
 
 
+def launch_traced(config: list[TracedWorkerConfig], client: mongo_connection):
+    workers = [
+        TracedWorker(
+            index,
+            client,
+            config[index].limit,
+            config[index].trace,
+            config[index].action
+        ) for index in range(0, len(config))]
+
+    for worker in workers:
+        worker.start()
+
+    time.sleep(15)
+
+    for worker in workers:
+        worker.go()
+
+    for worker in workers:
+        worker.join()
+
+
 def launch_burst(config: list[BurstWorkerConfig], client: mongo_connection):
     workers = [
         BurstWorker(
@@ -261,7 +335,6 @@ def convert_timestamp(time: str) -> datetime:
 def get_initial_time() -> datetime:
     result1 = subprocess.run(["ssh", "root@kube-worker-0", "'/root/timer.sh'"], stdout=subprocess.PIPE)
     return convert_timestamp(result1.stdout.decode("utf-8"))
-
 
 
 def extract_timestamp(line: str) -> datetime:
