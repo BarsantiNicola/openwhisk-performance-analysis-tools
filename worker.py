@@ -81,9 +81,9 @@ class Worker(Thread):
             case "constant":
                 return self.mean_inter_arrival_time
             case "exponential":
-                return floor(self.local_random_generator.exponential(self.mean_inter_arrival_time))
+                return abs(self.local_random_generator.exponential(self.mean_inter_arrival_time))
             case "gaussian":
-                return floor(self.local_random_generator.normal(self.mean_inter_arrival_time))
+                return abs(self.local_random_generator.normal(self.mean_inter_arrival_time))
             case _:
                 return self.mean_inter_arrival_time
 
@@ -93,9 +93,9 @@ class Worker(Thread):
             case "constant":
                 return self.mean_execution_time
             case "exponential":
-                return abs(floor(self.local_random_generator.exponential(self.mean_execution_time)))
+                return int(abs(floor(self.local_random_generator.exponential(self.mean_execution_time))))
             case "gaussian":
-                return abs(floor(self.local_random_generator.normal(self.mean_execution_time)))
+                return int(abs(floor(self.local_random_generator.normal(self.mean_execution_time))))
             case _:
                 return self.mean_execution_time
 
