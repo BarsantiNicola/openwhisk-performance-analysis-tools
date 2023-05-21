@@ -153,7 +153,7 @@ def analyze_exp6_singles(path: str, host, port, db_name):
 
 def analyze_real(path: str, host, port, db_name):
     os.system("mkdir -p " + path)
-    client = mongo_connection(host, port, db_name, "exp15_policy_consolidate_n_10_reqs_10000_ratio_0_3", True)
+    client = mongo_connection(host, port, db_name, "performance_evaluation_consolidation_10_2h", True)
     print("Extracted data")
     series = []
     for invoker in [0, 1, 2, 3, 4]:

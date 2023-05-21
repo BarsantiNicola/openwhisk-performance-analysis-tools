@@ -31,7 +31,7 @@ def get_actions(data: pandas.DataFrame) -> list[dict]:
 
 def extract_trace(data: pandas.DataFrame, app: str, func: str) -> list[tuple[float, int]]:
     results = []
-    subsect = data.loc[(data.app == app) & (data.func == func)]
+    subsect = (data.loc[(data.app == app) & (data.func == func)]).sort_values("end_timestamp")
     for index, row in subsect.iterrows():
         results.append((row.end_timestamp-row.duration, int(round(row.duration))))
     return results
