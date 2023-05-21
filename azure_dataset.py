@@ -34,6 +34,7 @@ def extract_trace(data: pandas.DataFrame, app: str, func: str) -> list[tuple[flo
     subsect = (data.loc[(data.app == app) & (data.func == func)]).sort_values("end_timestamp")
     for index, row in subsect.iterrows():
         results.append((row.end_timestamp-row.duration, int(round(row.duration))))
+    results.sort(key=lambda a: a[0])
     return results
 
 

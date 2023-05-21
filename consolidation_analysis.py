@@ -153,7 +153,7 @@ def analyze_exp6_singles(path: str, host, port, db_name):
 
 def analyze_real(path: str, host, port, db_name):
     os.system("mkdir -p " + path)
-    client = mongo_connection(host, port, db_name, "performance_evaluation_consolidation_10_2h", True)
+    client = mongo_connection(host, port, db_name, "performance_evaluation_consolidation_10_1h_1", True)
     print("Extracted data")
     series = []
     for invoker in [0, 1, 2, 3, 4]:
@@ -225,7 +225,7 @@ def plot_memory(path: str, title: str, values: list[tuple[list, list]], le: list
     plt.title(title)
 
     plt.ylim(0, 9)
-    #plt.xlim(0,800000)
+    plt.xlim(0,1600000)
     plt.plot(values[0], values[1], color=colors[0])
     print("Creatingchart")
     plt.savefig(path, dpi=1000, bbox_inches='tight')

@@ -57,7 +57,7 @@ class TracedWorker(Thread):
         for t in self.trace:
             if t[0]/1000 > self.limit:
                 break
-            time.sleep((t[0]-current_time)/1000)
+            time.sleep(abs((t[0]-current_time)/1000))
             current_time = t[0]
             self.counter += 1
             self.request_and_wait(t[1])
