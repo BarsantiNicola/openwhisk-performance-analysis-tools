@@ -108,7 +108,6 @@ def launch_traced_scenario(
         config.append(TracedWorkerConfig(duration, action["trace"], "taskJS" + str(counter)))
         counter += 1
     launch_traced(config, client)
-
     print("Test Execution completed! Waiting the system to be cleaned")
     time.sleep(1800)
     print("Starting results extraction")
@@ -284,6 +283,11 @@ def launch_traced(config: list[TracedWorkerConfig], client: mongo_connection):
 
     for worker in workers:
         worker.go()
+
+    time.sleep(config[0].limit)
+
+    for worker in workers:
+        worker.stop()
 
     for worker in workers:
         worker.join()

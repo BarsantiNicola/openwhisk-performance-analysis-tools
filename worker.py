@@ -55,7 +55,7 @@ class TracedWorker(Thread):
             pass
         current_time = 0
         for t in self.trace:
-            if t[0]/1000 > self.limit:
+            if self.ready is False:
                 break
             time.sleep(abs((t[0]-current_time)/1000))
             current_time = t[0]
@@ -66,6 +66,9 @@ class TracedWorker(Thread):
 
     def go(self):
         self.ready = True
+
+    def stop(self):
+        self.ready = False
 
     # function to perform a request to openwhisk via wsk and wait its result
     def request_and_wait(self, et: int):
