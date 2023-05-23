@@ -109,7 +109,7 @@ def launch_traced_scenario(
         counter += 1
     launch_traced(config, client)
     print("Test Execution completed! Waiting the system to be cleaned")
-    time.sleep(1800)
+    time.sleep(600)
     print("Starting results extraction")
     scenario_name = db_name + "_" + db_collection
     extract_results(scenario_name)
