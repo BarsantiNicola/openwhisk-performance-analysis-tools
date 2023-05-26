@@ -368,7 +368,8 @@ def parse_merge_and_store(global_directory_path: str, initial_timestamp: datetim
                         "action": s_pending["action"],
                         "namespace": s_pending["namespace"],
                         "state": s_pending["state"],
-                        "timestamp": s_pending["time"]
+                        "timestamp": s_pending["time"],
+                        "activation_id": s_pending["activation_id"]
                     }
                 )
                 invoker_pending[0].remove(i_pending)
@@ -415,7 +416,8 @@ def parse_controller(directory_path: str, initial_timestamp: datetime, client: m
                         "response_time": termination["time"] - activation["time"],
                         "action": activation["action"],
                         "namespace": activation["namespace"],
-                        "timestamp": activation["time"]
+                        "timestamp": activation["time"],
+                        "activation_id": activation["activation_id"]
                     }
                 )
                 activations.remove(activation)

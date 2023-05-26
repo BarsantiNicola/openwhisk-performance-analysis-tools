@@ -10,6 +10,10 @@ import pandas as pd
 import containers_analysis
 
 
+def create_normalized_response_time(host:str, port:int, scenario_name:str):
+    pass
+
+
 def extract_response_time(data: list[dict]) -> (list, list, list):
     values = []
     actions = []

@@ -85,7 +85,11 @@ def analyze_trace(input_file: str, output_file: str, size: int):
     data = get_dataset(input_file)
     actions = get_actions(data)[:size]
     compacted = []
+    counter = 0
     for action in actions:
+        counter += 1
+        if counter == 2:
+            continue
         print("Extracting action: " + action[0] + "-" + action[1])
         compacted.append(
             {
