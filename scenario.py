@@ -7,6 +7,7 @@ from math import floor
 from time import sleep
 
 import azure_dataset
+import response_time
 from burst_worker import BurstWorker
 from mongo_connection import mongo_connection
 from worker import Worker, TracedWorker
@@ -379,6 +380,7 @@ def parse_merge_and_store(global_directory_path: str, initial_timestamp: datetim
     print("Merging concluded: " + str(len(resolved_pending)))
     if len(resolved_pending) > 0:
         client.insert_many(resolved_pending)
+    response_time.create_normalized_response_time(client)
     return resolved_pending + scheduler_pending[1] + invoker_pending[1]
 
 

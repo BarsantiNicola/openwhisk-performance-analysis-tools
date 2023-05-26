@@ -9,10 +9,23 @@ import basics_tool
 import pandas as pd
 import containers_analysis
 
+def get_value(data:list[dict], id: str):
+    for d in data:
+        if d["activation_id"] == id:
+            return d
+    return None
 
-def create_normalized_response_time(host:str, port:int, scenario_name:str):
-    pass
-
+def create_normalized_response_time(client:mongo_connection):
+    global_rt = client.fetch_data("client_response_time")
+    service_rt = client.fetch_data("service_response_time")
+    normalized_service_rt = []
+    for srt in service_rt:
+        grt = get_value(global_rt,srt["activation_id"])
+        normalized = srt
+        normalized["kind"] = "normalized_service_time"
+        normalized["response_time"] -= grt["duration"]
+        normalized_service_rt.append(normalized)
+    client.insert_many(normalized_service_rt)
 
 def extract_response_time(data: list[dict]) -> (list, list, list):
     values = []
