@@ -68,10 +68,11 @@ class BurstWorkerConfig:
             return [self, other]
 
 class TracedWorkerConfig:
-    def __init__(self, limit: int, trace: list[tuple[float,int]], action: str):
-        self.limit =                    limit
-        self.trace =                    trace
-        self.action =                   action
+    def __init__(self, limit: int, trace: list[tuple[float,int]], action: str, azure_action: str):
+        self.limit = limit
+        self.trace = trace
+        self.action = action
+        self.azure_action = azure_action
 
     def __mul__(self, other: int):
         return [self for _ in range(0, other)]
@@ -105,7 +106,7 @@ def launch_traced_scenario(
     config = []
     counter = 0
     for action in actions:
-        config.append(TracedWorkerConfig(duration, action["trace"], "taskJS" + str(counter)))
+        config.append(TracedWorkerConfig(duration, action["trace"], "taskJS" + str(counter), action["name"]))
         counter += 1
     launch_traced(config, client)
     print("Test Execution completed! Waiting the system to be cleaned")
@@ -273,7 +274,8 @@ def launch_traced(config: list[TracedWorkerConfig], client: mongo_connection):
             client,
             config[index].limit,
             config[index].trace,
-            config[index].action
+            config[index].action,
+            config[index].azure_action
         ) for index in range(0, len(config))]
 
     for worker in workers:

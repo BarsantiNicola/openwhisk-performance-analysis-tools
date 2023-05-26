@@ -33,7 +33,8 @@ class TracedWorker(Thread):
             client: mongo_connection,
             limit: int,
             trace: list[tuple[float,int]],
-            action: str):
+            action: str,
+            azure_action: str):
 
         Thread.__init__(self)
         self.limit = limit
@@ -45,6 +46,7 @@ class TracedWorker(Thread):
         self.client = client
         self.worker_id = "test-worker" + str(worker_id)
         self.ready = False
+        self.azure_action = azure_action
         self.pool = ThreadPool(processes=10)
 
     # thread behavior, will just make a request to openwhisk, wait for the response and evaluate it and repeat until
@@ -61,7 +63,14 @@ class TracedWorker(Thread):
             current_time = t[0]
             self.counter += 1
             self.request_and_wait(t[1])
-
+        self.client.insert_one(
+            {
+                "action": self.action,
+                "azure_action": self.azure_action,
+                "completed": self.completed,
+                "failed": self.error
+            }
+        )
         print("Test completed. Success: " + str(self.completed) + " Failures: " + str(self.error))
 
     def go(self):
