@@ -81,11 +81,8 @@ class TracedWorker(Thread):
             else:
                 self.completed += 1
             content = result[result.rfind('X-Openwhisk-Activation-Id')+len("X-Openwhisk-Activation-Id")+1:]
-            print(content)
             content = content[content.find('"')+1:]
-            print(content)
-            activationId = content[:content.find('"')-1]
-            print(activationId)
+            activationId = content[:content.find('"')]
         end = time.time() * 1000
         self.client.insert_one(
             {
