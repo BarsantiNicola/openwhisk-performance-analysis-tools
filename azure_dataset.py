@@ -31,9 +31,14 @@ def get_actions(data: pandas.DataFrame) -> list[dict]:
 
 def extract_trace(data: pandas.DataFrame, app: str, func: str) -> list[tuple[float, int]]:
     results = []
-    subsect = (data.loc[(data.app == app) & (data.func == func)]).sort_values("end_timestamp")
+    print(str(data.size))
+    subsect = (data.loc[(data.app == app) & (data.func == func)])
+    print(str(subsect.size))
+    count = 0
     for index, row in subsect.iterrows():
         results.append((row.end_timestamp-row.duration, int(round(row.duration))))
+        count+=1
+    print(str(count))
     results.sort(key=lambda a: a[0])
     return results
 
@@ -90,8 +95,8 @@ def analyze_trace(input_file: str, output_file: str, size: int):
                 "trace": extract_trace(data, action[0], action[1])
             }
         )
-    extended = normalize_trace(compacted)
-    store(extended, output_file)
+    #extended = normalize_trace(compacted)
+    store(compacted, output_file)
     return compacted
 
 

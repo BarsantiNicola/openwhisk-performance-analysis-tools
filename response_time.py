@@ -96,7 +96,7 @@ def analyze_scenario(host, port, db_name, scenario):
         steady = basics_tool.steady_state(values_client[index])
         independent_timestamp, independent_values = basics_tool.subsample_to_independence(
             timestamp_client[index][steady:], values_client[index][steady:], 0.99)
-        results.append(graph_response_time(independent_timestamp, independent_values, "/home/nico/Desktop",
+        results.append(graph_response_time(timestamp_client[index][steady:], values_client[index][steady:], "/home/nico/Desktop",
                                            scenario + "/client_rt",
                                            actions_client[index]))
     print("done!")
@@ -106,7 +106,7 @@ def analyze_scenario(host, port, db_name, scenario):
         independent_timestamp, independent_values = basics_tool.subsample_to_independence(
             timestamp_local[index][steady:], values_local[index][steady:], 0.99)
         results.append(
-            graph_response_time(independent_timestamp, independent_values, "/home/nico/Desktop", scenario + "/local_rt",
+            graph_response_time(timestamp_local[index][steady:], values_local[index][steady:], "/home/nico/Desktop", scenario + "/local_rt",
                                 actions_local[index]))
     print("done!")
     print("[ResponseTime-Analysis] Starting analysis of service response time...", end="")
@@ -114,7 +114,7 @@ def analyze_scenario(host, port, db_name, scenario):
         steady = basics_tool.steady_state(values_service[index])
         independent_timestamp, independent_values = basics_tool.subsample_to_independence(
             timestamp_service[index][steady:], values_service[index][steady:], 0.99)
-        results.append(graph_response_time(independent_timestamp, independent_values, "/home/nico/Desktop",
+        results.append(graph_response_time(timestamp_service[index][steady:], values_service[index][steady:], "/home/nico/Desktop",
                                            scenario + "/service_rt",
                                            actions_service[index]))
     print("done!")

@@ -73,13 +73,19 @@ class TracedWorker(Thread):
     # function to perform a request to openwhisk via wsk and wait its result
     def request_and_wait(self, et: int):
         start = time.time() * 1000
-        with Popen(["wsk", "action", "invoke", self.action, "-ir", "--param", "time", str(min(19000, et))],
+        with Popen(["wsk", "action", "invoke", self.action, "-irv", "--param", "time", str(min(19000, et))],
                    stdout=subprocess.PIPE) as proc:
             result = proc.stdout.read().decode("utf-8")
             if "error" in result or len(result) == 0:
                 self.error += 1
             else:
                 self.completed += 1
+            content = result[result.rfind('X-Openwhisk-Activation-Id')+len("X-Openwhisk-Activation-Id")+1:]
+            print(content)
+            content = content[content.find('"')+1:]
+            print(content)
+            activationId = content[:content.find('"')]
+            print(activationId)
         end = time.time() * 1000
         self.client.insert_one(
             {
@@ -87,7 +93,9 @@ class TracedWorker(Thread):
                 "response_time": end - start,
                 "kind": "global_response_time",
                 "action": self.action,
-                "actor": self.worker_id
+                "actor": self.worker_id,
+                "duration": et,
+                "activation_id": activationId
             })
 
 
