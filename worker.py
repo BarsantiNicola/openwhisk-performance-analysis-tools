@@ -84,7 +84,7 @@ class TracedWorker(Thread):
             print(content)
             content = content[content.find('"')+1:]
             print(content)
-            activationId = content[:content.find('"')]
+            activationId = content[:content.find('"')-1]
             print(activationId)
         end = time.time() * 1000
         self.client.insert_one(
