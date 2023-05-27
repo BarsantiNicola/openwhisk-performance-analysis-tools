@@ -56,5 +56,8 @@ class mongo_connection:
             case "invokers_memory":
                 return list(self.collection.find({"kind": "invokers-container-counter", "invoker": invoker}, {})
                             .sort("timestamp", pymongo.ASCENDING))
+            case "normalized_service_time":
+                return list(self.collection.find({"kind": "normalized_service_time"}, {})
+                    .sort("timestamp", pymongo.ASCENDING))
             case "all":
                 return self.collection.find()

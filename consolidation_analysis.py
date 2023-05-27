@@ -151,9 +151,9 @@ def analyze_exp6_singles(path: str, host, port, db_name):
                         "Invoker " + str(invoker) + " Usage", series[invoker], ["invoker"])
 
 
-def analyze_real(path: str, host, port, db_name):
+def analyze_real(path: str, host:str, port:int, db_name:str, scenario_name:str):
     os.system("mkdir -p " + path)
-    client = mongo_connection(host, port, db_name, "native_check", True)
+    client = mongo_connection(host, port, db_name, scenario_name, True)
     print("Extracted data")
     series = []
     for invoker in [0, 1, 2, 3, 4]:
@@ -162,10 +162,21 @@ def analyze_real(path: str, host, port, db_name):
         print("Data Fetched")
     series = normalize_series(series)
     print("plotting")
+    results = []
     for invoker in [0, 1, 2, 3, 4]:
         plot_memory(path + "/invoker_" + str(invoker) + ".png",
                     "Invoker " + str(invoker) + " Usage", series[invoker], ["invoker"])
-
+        data = generate(series[invoker])
+        steady = basics_tool.steady_state(data[1])
+        data = basics_tool.subsample_to_independence(data[0][steady:],data[1][steady:],0.99)
+        data = (data[0],[d*256 for d in data[1]])
+        results.append({
+            "mean_value": basics_tool.list_mean(data[1]),
+            "var": basics_tool.list_var(data[1]),
+            "ci": basics_tool.ci(data[1],0.99),
+            "invoker": invoker
+        })
+    return results
 
 def generate(values: (list, list)) -> (list, list):
     final_timestamps = []
@@ -222,7 +233,7 @@ def plot_memory(path: str, title: str, values: list[tuple[list, list]], le: list
     print("ok2")
     plt.ylabel('Containers', fontsize=14)
     plt.xlabel("Time(ms)", fontsize=14)
-    plt.title(title)
+    plt.title = title
 
     plt.ylim(0, 9)
     plt.xlim(0,500000)

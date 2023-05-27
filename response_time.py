@@ -21,10 +21,14 @@ def create_normalized_response_time(client:mongo_connection):
     normalized_service_rt = []
     for srt in service_rt:
         grt = get_value(global_rt,srt["activation_id"])
-        normalized = srt
-        normalized["kind"] = "normalized_service_time"
-        normalized["response_time"] -= grt["duration"]
-        normalized_service_rt.append(normalized)
+        normalized_service_rt.append({
+            "kind": "normalized_service_time",
+            "response_time": srt["response_time"] - grt["duration"],
+            "action": srt["action"],
+            "namespace": srt["namespace"],
+            "timestamp": srt["timestamp"],
+            "activation_id": srt["activation_id"]
+        })
     client.insert_many(normalized_service_rt)
 
 def extract_response_time(data: list[dict]) -> (list, list, list):
@@ -102,11 +106,13 @@ def analyze_scenario(host, port, db_name, scenario):
     client_rt = client.fetch_data("client_response_time")
     local_rt = client.fetch_data("minimum_response_time")
     service_rt = client.fetch_data("service_response_time")
+    normalized_service_rt = client.fetch_data("normalized_service_time")
     print("done!")
 
     actions_client, timestamp_client, values_client = extract_response_time(client_rt)
     actions_local, timestamp_local, values_local = extract_response_time(local_rt)
     actions_service, timestamp_service, values_service = extract_response_time(service_rt)
+    n_actions_service, n_timestamp_service, n_values_service = extract_response_time(normalized_service_rt)
     results = []
     print("[ResponseTime-Analysis] Starting analysis of client response time...", end="")
     for index in range(0, len(actions_client)):
@@ -133,6 +139,12 @@ def analyze_scenario(host, port, db_name, scenario):
             timestamp_service[index][steady:], values_service[index][steady:], 0.99)
         results.append(graph_response_time(timestamp_service[index][steady:], values_service[index][steady:], "/home/nico/Desktop",
                                            scenario + "/service_rt",
+                                           actions_service[index]))
+    print("done!")
+    for index in range(0, len(n_actions_service)):
+        steady = basics_tool.steady_state(n_values_service[index])
+        results.append(graph_response_time(n_timestamp_service[index][steady:], n_values_service[index][steady:], "/home/nico/Desktop",
+                                           scenario + "/normalized_service_rt",
                                            actions_service[index]))
     print("done!")
     return results + containers_analysis.graph_container_state("/home/nico/Desktop/" + scenario, client)
