@@ -30,13 +30,19 @@ class mongo_connection:
         else:
             return InsertManyResult([], False)
 
-    def fetch_data(self, kind: str, invoker:int=0) -> list[dict]:
+    def fetch_data(self, kind: str, invoker:int=0, action:str="") -> list[dict]:
         match kind:
+            case "invokers_power":
+                return list(self.collection.find({"kind":  "power_consumed", "invoker": invoker}, {})
+                            .sort("timestamp", pymongo.ASCENDING))
             case "minimum_response_time":
                 return list(self.collection.find({"kind": "local_response_time"}, {})
                             .sort("timestamp", pymongo.ASCENDING))
             case "service_response_time":
                 return list(self.collection.find({"kind": "service_response_time"}, {})
+                            .sort("timestamp", pymongo.ASCENDING))
+            case "normalized_service_response_time":
+                return list(self.collection.find({"kind": "normalized_service_time"}, {})
                             .sort("timestamp", pymongo.ASCENDING))
             case "client_response_time":
                 return list(self.collection.find({"kind": "global_response_time"}, {})
@@ -48,7 +54,8 @@ class mongo_connection:
                 return list(self.collection.find({"staleActivationNum": {"$exists": 1}}, {})
                             .sort("timestamp", pymongo.ASCENDING))
             case "supervisor_info":
-                return list(self.collection.find({"kind": "supervisor-state"}, {})
+                print(action)
+                return list(self.collection.find({"kind": "supervisor-state", "action": action }, {})
                             .sort("timestamp", pymongo.ASCENDING))
             case "container_creation":
                 return list(self.collection.find({"kind": "container-created"}, {})

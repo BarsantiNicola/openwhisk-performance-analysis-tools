@@ -164,31 +164,39 @@ def analyze_real(path: str, host:str, port:int, db_name:str, scenario_name:str):
     print("plotting")
     results = []
     for invoker in [0, 1, 2, 3, 4]:
-        plot_memory(path + "/invoker_" + str(invoker) + ".png",
-                    "Invoker " + str(invoker) + " Usage", series[invoker], ["invoker"])
+        if len(series[invoker][0]) <=1:
+            continue
+
         data = generate(series[invoker])
-        steady = basics_tool.steady_state(data[1])
-        data = basics_tool.subsample_to_independence(data[0][steady:],data[1][steady:],0.99)
-        data = (data[0],[d*256 for d in data[1]])
-        results.append({
-            "mean_value": basics_tool.list_mean(data[1]),
-            "var": basics_tool.list_var(data[1]),
-            "ci": basics_tool.ci(data[1],0.99),
-            "invoker": invoker
-        })
-    return results
+        plot_memory(path + "/invoker_" + str(invoker) + ".png",
+                    "Invoker " + str(invoker) + " Usage", data, ["invoker"])
+
+        #steady = basics_tool.steady_state(data[1])
+        #data = basics_tool.subsample_to_independence(data[0][steady:], data[1][steady:], 0.99)
+        #data = (data[0],[d*256 for d in data[1]])
+
+        #results.append({
+        #    "mean_value": basics_tool.list_mean(data[1]),
+        #    "var": basics_tool.list_var(data[1]),
+        #    "ci": basics_tool.ci(data[1], 0.99),
+        #    "invoker": invoker
+        #})
+    return None #results
+
 
 def generate(values: (list, list)) -> (list, list):
     final_timestamps = []
     final_values = []
+    print("int " + str(len(values[1])))
     for i in range(0, len(values[0])):
         if i < len(values[0])-1:
-            for a in range(values[0][i], values[0][i + 1] - values[0][i]):
-                final_timestamps.append(a)
+            for a in range(0, values[0][i + 1] - values[0][i]):
+                final_timestamps.append(a+values[0][i])
                 final_values.append(values[1][i])
         else:
             final_timestamps.append(values[0][i])
             final_values.append(values[1][i])
+    print("Len: " + str(len(final_values)))
     return final_timestamps, final_values
 
 
@@ -236,7 +244,7 @@ def plot_memory(path: str, title: str, values: list[tuple[list, list]], le: list
     plt.title = title
 
     plt.ylim(0, 9)
-    plt.xlim(0,500000)
+    plt.xlim(0,2000000)
     plt.plot(values[0], values[1], color=colors[0])
     print("Creatingchart")
     plt.savefig(path, dpi=1000, bbox_inches='tight')

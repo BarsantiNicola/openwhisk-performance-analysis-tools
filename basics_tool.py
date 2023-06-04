@@ -112,7 +112,7 @@ def subsample_to_independence(timestamp: list, values: list, accuracy: float, re
     cycle = 0
     sub_sample = values
     sub_sample_times = timestamp
-    p = .9
+    p = .05
     conf_i = (stats.norm.ppf(accuracy)) / sqrt(len(values))
     if shuffle:
         random.shuffle(values)

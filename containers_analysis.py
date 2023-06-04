@@ -5,6 +5,7 @@ import basics_tool
 import numpy as np
 from matplotlib import pyplot as plt
 
+import consolidation_analysis
 from mongo_connection import mongo_connection
 
 
@@ -21,12 +22,11 @@ def extract_containers(data: list[dict]) -> ((list, list), (list, list)):
         unused[0].append(d["timestamp"])
         unused[1].append(unrequired)
 
-    normalized_timestamps_a = []
-    normalized_timestamps_u = []
+    print(str(len(unused[1])))
     m_a = min(availables[0])
     m_u = min(unused[0])
-    normalized_timestamps_a.append([d - m_a for d in availables[0]])
-    normalized_timestamps_u.append([d - m_u for d in unused[0]])
+    normalized_timestamps_a = [d - m_a for d in availables[0]]
+    normalized_timestamps_u = [d - m_u for d in unused[0]]
     print("done!")
     return (normalized_timestamps_a, availables[1]), (normalized_timestamps_u, unused[1])
 
@@ -124,20 +124,70 @@ def graph_container_state(path: str, client: mongo_connection) -> list[dict]:
     print("[Container-Analysis] Result analysis completed. Results stored into " + containers_path)
     return results
 
+def container_analysis(path: str, scenario_name: str, actions: list[str]):
+    client = mongo_connection(path, 27017, "test", scenario_name, True)
+    result = []
+    unused_result = []
+    for a in actions:
+        snapshots = client.fetch_data("supervisor_info", action=a)
+        available, unused = extract_containers(snapshots)
+        available = consolidation_analysis.generate((available[0], available[1]))
+        unused = consolidation_analysis.generate((unused[0],unused[1]))
+        steady = basics_tool.steady_state(available[1])
+        available = basics_tool.subsample_to_independence(available[0][steady:], available[1][steady:], 0.99, retrials=1)
+        steady = basics_tool.steady_state(unused[1])
+        unused = basics_tool.subsample_to_independence(unused[0][steady:], unused[1][steady:], 0.99)
+        result.append(
+        {
+            "mean": basics_tool.list_mean(available[1]),
+            "ci": basics_tool.ci(available[1], 0.99),
+            "median": basics_tool.list_median(available[1]),
+            "var": basics_tool.list_var(available[1]),
+            "std": basics_tool.list_std(available[1]),
+            "type": "available"
+        })
+        unused_result.append({
+            "mean": basics_tool.list_mean(unused[1]),
+            "ci": basics_tool.ci(unused[1], 0.99),
+            "median": basics_tool.list_median(unused[1]),
+            "var": basics_tool.list_var(unused[1]),
+            "std": basics_tool.list_std(unused[1]),
+            "type": "unused"
+        })
+    compacted_mean = 0
+    compacted_ci = 0
+    unused_compacted_mean = 0
+    unused_compacted_ci = 0
+    for res in result:
+        compacted_mean += res["mean"]
+        compacted_ci += res["ci"]
+    for res in unused_result:
+        unused_compacted_mean += res["mean"]
+        unused_compacted_ci += res["ci"]
+    return [{
+        "mean": compacted_mean,
+        "ci": compacted_ci,
+        "type": "available"
+    },{
+        "mean": unused_compacted_mean,
+        "ci": unused_compacted_ci,
+        "type": "unused"
+    }]
+
 
 def container_single_analysis(title: str, timestamp: list, data: list, path: str) -> dict:
     print("[Container-Analysis] --> Started analysis of " + title + "...", end="")
     plot_values(title + " values", path, timestamp, data)
     bars = plot_epmf(title + " epmf", path, data)
+    extended_timestamp, extended_data = consolidation_analysis.generate((timestamp,data))
     print("done!")
     return {
-        "mean": basics_tool.list_mean(data),
-        "ci": basics_tool.ci(data, 0.99),
-        "median": basics_tool.list_median(data),
-        "var": basics_tool.list_var(data),
-        "std": basics_tool.list_std(data),
+        "mean": basics_tool.list_mean(extended_data[1]),
+        "ci": basics_tool.ci(extended_data[1], 0.99),
+        "median": basics_tool.list_median(extended_data[1]),
+        "var": basics_tool.list_var(extended_data[1]),
+        "std": basics_tool.list_std(extended_data[1]),
         "type": title,
-        "bars": str(bars)
     }
 
 

@@ -90,6 +90,7 @@ def launch_traced_scenario(
         db_name: str,
         db_collection: str,
         n_actions: int,
+        offset: int,
         duration: int,
         trace_path: str
 ):
@@ -102,7 +103,7 @@ def launch_traced_scenario(
         return
 
     initial_timestamp = get_initial_time()
-    actions = azure_dataset.retrieve(trace_path)[:n_actions]
+    actions = azure_dataset.retrieve(trace_path)[offset:offset+n_actions]
 
     config = []
     counter = 0

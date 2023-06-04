@@ -100,6 +100,30 @@ def analyze_exp3(path: str, host, port, db_name, tags: list[str], identificators
     plot_multivalues(path+"/response_time.png", identificators, results, tags, "Execution Time(ms)")
     containers_analysis.analyze_exp3(path, host, port, db_name, tags, identificators)
 
+def analyze_global_scenario(host, port, db_name, scenario):
+    client = mongo_connection(host, port, db_name, scenario, True)
+    print("[ResponseTime-Analysis] Starting data extraction from mongoDb...", end="")
+    normalized_service_rt = client.fetch_data("normalized_service_time")
+    print("done!")
+
+    n_actions_service, n_timestamp_service, n_values_service = extract_response_time(normalized_service_rt)
+    print("[ResponseTime-Analysis] Starting analysis of client response time...", end="")
+    total_values = []
+    for index in range(0, len(n_actions_service)):
+        steady = basics_tool.steady_state(n_values_service[index])
+        #independent_timestamp, independent_values = basics_tool.subsample_to_independence(
+        #    n_timestamp_service[index][steady:], n_values_service[index][steady:], 0.99)
+        total_values += n_values_service[index][steady:]
+    print("done!")
+    final_values = []
+    for value in total_values:
+        if value< 20000:
+            final_values.append(value)
+    plot_epmf("Response Time PMF", "/home/nico/Scrivania", final_values)
+    plot_boxplot("Response Time Boxplot", "/home/nico/Scrivania", final_values)
+    return final_values
+
+
 def analyze_scenario(host, port, db_name, scenario):
     client = mongo_connection(host, port, db_name, scenario, True)
     print("[ResponseTime-Analysis] Starting data extraction from mongoDb...", end="")
@@ -185,9 +209,10 @@ def plot_values(t: str, path: str, values: list, timestamps: list):
 def plot_epmf(t: str, path: str, values: list):
     mean = basics_tool.list_mean(values)
     weights = np.ones_like(values) / len(values)
-    plt.hist(values, 30, color="lightblue", ec="blue", weights=weights)
+    plt.hist(values, 10, color="lightblue", ec="blue", weights=weights)
     plt.ylabel('Probability', fontsize=14)
     plt.xlabel('Response Time(ms)', fontsize=14)
+    plt.xlim(0,500)
     plt.annotate('Mean: ' + str(mean), xy=(mean, 1.2))
     plt.savefig(path + "/" + t, dpi=100, bbox_inches='tight')
 
@@ -198,6 +223,7 @@ def plot_ecdf(title: str, path: str, values: list):
     cum_sum = numpy.cumsum(counts)
     data = values, cum_sum / cum_sum[-1]
     plt.plot(data[0], data[1])
+
     # plt.title = title
     plt.xlabel('Response Time(ms)', fontsize=14)
     plt.ylabel('Probability', fontsize=14)
@@ -209,6 +235,7 @@ def plot_boxplot(title: str, path: str, values: list):
     plt.clf()
     df = pd.DataFrame({'Response Time': values})
     myFig = plt.figure()
+    plt.ylim(0,600)
     bpdict = df.boxplot(whis=[0, 99], return_type='dict')
     annotate_boxplot(bpdict)
     myFig.savefig(path + "/" + title, dpi=100, bbox_inches='tight')
@@ -218,19 +245,10 @@ def plot_boxplot(title: str, path: str, values: list):
 def annotate_boxplot(bpdict, annotate_params=None,
                      x_offset=0.1, x_loc=0,
                      text_offset_x=35,
-                     text_offset_y=20):
+                     text_offset_y=30):
     if annotate_params is None:
         annotate_params = dict(xytext=(text_offset_x, text_offset_y), textcoords='offset points',
                                arrowprops={'arrowstyle': '->'})
-
-    plt.annotate('       Median: ' + str("{:.2f}".format(bpdict['medians'][x_loc].get_ydata()[0])),
-                 (x_loc + 1 + x_offset, bpdict['medians'][x_loc].get_ydata()[0]), **annotate_params)
-    plt.annotate('       25%: ' + str("{:.2f}".format(bpdict['boxes'][x_loc].get_ydata()[0])),
-                 (x_loc + 1 + x_offset, bpdict['boxes'][x_loc].get_ydata()[0]), **annotate_params)
-    plt.annotate('       75%: ' + str("{:.2f}".format(bpdict['boxes'][x_loc].get_ydata()[2])),
-                 (x_loc + 1 + x_offset, bpdict['boxes'][x_loc].get_ydata()[2]), **annotate_params)
-    plt.annotate('       5%: ' + str("{:.2f}".format(bpdict['caps'][x_loc * 2].get_ydata()[0])),
-                 (x_loc + 1 + x_offset, bpdict['caps'][x_loc * 2].get_ydata()[0]), **annotate_params)
     plt.annotate('       95%: ' + str("{:.2f}".format(bpdict['caps'][(x_loc * 2) + 1].get_ydata()[0])),
                  (x_loc + 1 + x_offset, bpdict['caps'][(x_loc * 2) + 1].get_ydata()[0]), **annotate_params)
 
