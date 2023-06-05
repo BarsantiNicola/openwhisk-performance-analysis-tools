@@ -298,7 +298,7 @@ def launch_traced(config: list[TracedWorkerConfig], client: mongo_connection):
 
 def load_scenario(conf_file: str):
     os.system("scp " + conf_file + " ubuntu@kube-control-plane-0:/home/ubuntu/openwhisk_cluster.yaml")
-    os.system("ssh ubuntu@kube-control-plane-0 'helm uninstall owdev -n openwhisk'")
+    os.system("ssh ubuntu@kube-control-plane-0 '/home/ubuntu/uninstall_cluster'")
     time.sleep(120)
     os.system("ssh ubuntu@kube-control-plane-0 '/home/ubuntu/spawn_cluster")
     time.sleep(300)
