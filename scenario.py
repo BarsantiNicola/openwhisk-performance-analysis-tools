@@ -346,8 +346,10 @@ def extract_results(scenario_name: str) -> None:
 
 def convert_timestamp(time: str) -> datetime:
     result = time[time.rfind("[")+1:time.rfind("Z") - 1]
-    return datetime.strptime(result, "%Y-%m-%dT%H:%M:%S.%f")
-
+    try:
+        return datetime.strptime(result, "%Y-%m-%dT%H:%M:%S.%f")
+    except:
+        return datetime.fromtimestamp(0)
 
 def get_initial_time() -> datetime:
     result1 = subprocess.run(["ssh", "root@kube-worker-0", "'/root/timer.sh'"], stdout=subprocess.PIPE)
