@@ -301,7 +301,7 @@ def load_scenario(conf_file: str):
     os.system("ssh ubuntu@kube-control-plane-0 '/home/ubuntu/uninstall_cluster'")
     time.sleep(120)
     os.system("ssh ubuntu@kube-control-plane-0 '/home/ubuntu/spawn_cluster'")
-    time.sleep(300)
+    time.sleep(600)
     os.system("ssh ubuntu@kube-control-plane-0 '/home/ubuntu/create_actions 10 Consolidate'")
 
 def launch_burst(config: list[BurstWorkerConfig], client: mongo_connection):

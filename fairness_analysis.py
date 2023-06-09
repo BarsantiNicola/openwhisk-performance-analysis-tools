@@ -1,10 +1,7 @@
 import numpy
-
 import basics_tool
-from matplotlib import pyplot as plt
 import pandas as pd
-
-import response_time
+from matplotlib import pyplot as plt
 from mongo_connection import mongo_connection
 
 
@@ -20,23 +17,25 @@ def extract_response_time(data: list[dict]) -> (list, list):
     normalized_timestamps = [d-m for d in timestamps]
     return normalized_timestamps, values
 
-def analyze_fairness(path:str, host:str, scenario_name:str):
+
+def analyze_fairness( host:str, scenario_name:str):
     client = mongo_connection(host,27017, "test",scenario_name, True)
     data = client.fetch_data("normalized_service_response_time")
     rt = extract_response_time(data)
     steady = basics_tool.steady_state(rt[1])
     print("Max value: " + str(max(rt[1][steady:])))
     plot_boxplot(rt[1][steady:])
-    return compute_fearness(path + "/"+scenario_name+"_fearness.png", rt[1][steady:])
+    return compute_fearness(rt[1][steady:])
+
 
 def plot_boxplot(values: list):
     df = pd.DataFrame({'Response Time': values})
-    myFig = plt.figure()
     #plt.ylim(0,600)
     bpdict = df.boxplot(whis=[0, 99], return_type='dict')
     annotate_boxplot(bpdict)
     plt.show()
     plt.clf()
+
 
 def annotate_boxplot(bpdict, annotate_params=None,
                      x_offset=0.1, x_loc=0,
@@ -54,13 +53,17 @@ def lorenz_curve(X):
     X_lorenz = numpy.insert(X_lorenz, 0, 0)
     return X_lorenz
 
-def compute_fearness( path:str, data: list[int]):
-    data.sort()
-    lc= lorenz_curve(numpy.array(data))
-    lcg = max([x/len(data) - lc[x] for x in range(0,len(data))])
-    create_fearness_graph(path, lc)
 
-    return lcg
+def compute_fearness( data: list[int]):
+    chunks = [data[x:x + 500] for x in range(0, len(data), 500)]
+    lcg = []
+    for chunk in chunks:
+        chunk.sort()
+        lc= lorenz_curve(numpy.array(chunk))
+        lcg.append(max([x/len(chunk) - lc[x] for x in range(0,len(chunk))]))
+
+    return basics_tool.list_mean(lcg), basics_tool.ci(lcg, 0.99)
+
 
 def create_fearness_graph( path:str, fearness: list):
     plt.plot([0,1], [0,1], color='r', linestyle="dashed")
